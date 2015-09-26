@@ -89,9 +89,11 @@ command_stream_t
 make_command_stream (int (*get_next_byte) (void *),
 		     void *get_next_byte_argument)
 {
-  /* Method: TODO
-            
+  /* Method: TODO implement the stream which should be a linked list
+  of characters to be processed in read_command_stream
 
+  TODO: repurpose the stack which is already a working linked list
+  to work for the stream struct as well potentially to reuse the code
   */
   
   char next_byte = (*get_next_byte)(get_next_byte_argument);
