@@ -11,16 +11,55 @@
 /* FIXME: Define the type 'struct command_stream' here.  This should
    complete the incomplete type declaration in command.h.  */
 
+//////////////////////////////////////////////////////////////
+/////////////  Command Stream Implementation  ////////////////
+//////////////////////////////////////////////////////////////
+
+struct command_stream {
+  stream_node* m_head;
+
+  typedef struct stream_node {
+    stream_node* m_next;
+    command* m_dataptr;
+  };
+};
+
+
+void add_command(command* to_add_command) {
+
+  // empty stream
+  if(m_head == null) {
+    m_head = (stream_node*) malloc(sizeof(stream_node));
+    m_head->m_next = null;
+    m_head->m_dataptr = to_add_command;
+  }
+  else // ! empty stream
+  {
+    stream_node* p = m_head;
+    // seek p to point to the last node
+    for(; p->m_next != null; p = p->m_next) {}
+
+    p->m_next = (stream_node*) malloc(sizeof(stream_node));
+    p->m_next = null;
+    p->m_dataptr = to_add_command;
+  }
+  return;
+}
+
+//////////////////////////////////////////////////////////////
+//////////////////  Stack Implementation  ////////////////////
+//////////////////////////////////////////////////////////////
+
 typedef struct stack_t
 {
   int m_count;
-  node* m_head;
-  node* m_tail;
+  stack_node* m_head;
+  stack_node* m_tail;
   bool is_command_stack;
 
-  typedef struct node {
+  typedef struct stack_node {
     void* m_dataptr;
-    node* m_next;
+    stack_node* m_next;
   };
 };
 
@@ -37,19 +76,19 @@ void push(void* to_push) {
 
   // empty stack
   if (command_stack->m_head == null) {
-    // Allocating memory for node
-    command_stack->m_head = (node*) malloc(sizeof(node)));
+    // Allocating memory for stack_node
+    command_stack->m_head = (stack_node*) malloc(sizeof(stack_node)));
 
-    // Fill in node and update head & tail
+    // Fill in stack_node and update head & tail
     command_stack->m_head->m_next = null;
     command_stack->m_head->m_dataptr = to_push;
     command_stack->m_head = command_stack->m_tail;
   }
   else {
-    // Allocating memory for node
-    command_stack->m_tail->m_next = (node*) malloc(sizeof(node)));
+    // Allocating memory for stack_node
+    command_stack->m_tail->m_next = (stack_node*) malloc(sizeof(stack_node)));
     
-    // Fill in node and update tail
+    // Fill in stack_node and update tail
     command_stack->m_tail->m_dataptr = to_push;
     command_stack->m_tail->m_next = null;
     command_stack->m_tail = command_stack->m_tail->m_next;
@@ -69,7 +108,7 @@ void* pop() {
 
   void* to_return = command_stack->m_tail->m_dataptr; 
 
-  // free the last node on the stack
+  // free the last stack_node on the stack
   free(command_stack->m_tail);
 
   command_stack->m_count--;
@@ -85,15 +124,16 @@ void* pop() {
 }
 
 
+
+
+
+
 command_stream_t
 make_command_stream (int (*get_next_byte) (void *),
 		     void *get_next_byte_argument)
 {
-  /* Method: TODO implement the stream which should be a linked list
-  of characters to be processed in read_command_stream
-
-  TODO: repurpose the stack which is already a working linked list
-  to work for the stream struct as well potentially to reuse the code
+  /* Method: TODO implement linked list that 
+  is the command forest the TA talked about in lecture
   */
   
   char next_byte = (*get_next_byte)(get_next_byte_argument);
