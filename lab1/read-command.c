@@ -53,6 +53,17 @@ bool is_valid(char character) {
 //////////////////////////////////////////////////////////////
 /////////////  Command Stream Implementation  ////////////////
 //////////////////////////////////////////////////////////////
+
+//CHANGES MADE:
+//added an "m_curr" pointer to command_stream 
+//	ideally will later on allow read_command_stream to iterate through list
+//	allows add_command function to not have to seek to last node
+//
+//added an "initialize_stream" function that make_command_stream may eventually use
+//old code is commented out not removed
+//renamed "size" to "m_size"
+//added traverse_stream method using "m_curr" pointer to iterate through the list
+
 typedef struct node* node_t;
 
 typedef struct node {
@@ -60,37 +71,60 @@ typedef struct node {
   node_t m_next;
 } node;
 
-typedef struct command_stream {
+//typedef struct command_stream *command_stream_t; (from command.h)
+struct command_stream {
   node_t m_head;
-  int size;
-} command_stream;
+  node_t curr;
+  int m_size;
+};
 
+void initialize_stream(command_stream_t){
+  m_command_stream->m_head = NULL;
+  m_command_stream->m_curr = NULL;
+}
 
 void add_command(command_t to_add_command, command_stream_t m_command_stream) {
-
   // empty stream
   if(m_command_stream->m_head == NULL) {
-    m_command_stream->m_head = (node_t) checked_malloc(sizeof(command_stream));
+    
+    m_command_stream->m_curr = (node_t) checked_malloc(sizeof(node));
+    m_command_stream->m_curr->m_dataptr = to_add_command;
+    m_command_stream->m_curr->m_next = NULL;
+    m_command_stream->m_head = m_command_stream->m_curr;
+    
+    
+    //m_command_stream->m_head = (node_t) checked_malloc(sizeof(node));
 
     // initialize node
-    m_command_stream->m_head->m_dataptr = to_add_command;
-    m_command_stream->m_head->m_next = NULL;
+    //m_command_stream->m_head->m_dataptr = to_add_command;
+    //m_command_stream->m_head->m_next = NULL;
+    //m_command_stream->m_curr = m_command_stream->m_head;
   }
   else // ! empty stream
   {
-    node_t p = m_command_stream->m_head;
+    //node_t p = m_command_stream->m_head;
     // seek p to point to the last node
-    for(; p->m_next != NULL; p = p->m_next) {}
-
+    //for(; p->m_next != NULL; p = p->m_next) {}
+    
+    
+    //
+    m_command_stream->m_curr->m_next = (node_t) checked_malloc(sizeof(node));
+    m_command_stream->m_curr = m_command_stream->m_curr->m_next;
+    
+    m_command_stream->m_curr->m_dataptr = to_add_command;
+    m_command_stream->m_curr->m_next = NULL;
+    
+    
     // initialize new node
-    p->m_next = (node_t) checked_malloc(sizeof(node));
-    p->m_next->m_next = NULL;
-    p->m_next->m_dataptr = to_add_command;
+    //p->m_next = (node_t) checked_malloc(sizeof(node));
+    //p->m_next->m_next = NULL;
+    //p->m_next->m_dataptr = to_add_command;
   }
 
-  m_command_stream->size++;
+  m_command_stream->m_size++;
   return;
 }
+
 
 // Converts input buffer into a linked list of tokens 
 // This helps to categorize the inputs
