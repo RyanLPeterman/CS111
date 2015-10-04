@@ -1,15 +1,26 @@
+#include <stdbool.h> // for boolean type
+
 // UCLA CS 111 Lab 1 command interface
 
 typedef struct command *command_t;
 typedef struct command_stream *command_stream_t;
 
-typedef enum {
-	WORD_TOKEN,
-	SEMI_COLON_TOKEN,
-	PIPE_TOKEN,
-	AND_TOKEN,
-	OR_TOKEN
-}
+typedef enum token_type
+{
+	WORD,
+	SEMICOLON,
+	PIPE,
+	AND,
+	OR,
+	LEFT_PAREN,
+	RIGHT_PAREN,
+  	LEFT_ARROW,
+  	RIGHT_ARROW,
+  	COMMENT,
+  	NEWLINE,
+  	UNKNOWN
+} token_type;
+
 
 bool is_valid(char character);
 char* read_file_into_buffer(int (*get_next_byte) (void *), void *get_next_byte_argument);
