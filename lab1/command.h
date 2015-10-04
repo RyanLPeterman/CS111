@@ -1,9 +1,8 @@
 #include <stdbool.h> // for boolean type
 
-// UCLA CS 111 Lab 1 command interface
-
-typedef struct command *command_t;
-typedef struct command_stream *command_stream_t;
+/////////////////////////////////////////////////
+///////////////  Token Definition  //////////////
+/////////////////////////////////////////////////
 
 typedef enum token_type
 {
@@ -14,16 +13,45 @@ typedef enum token_type
 	OR,
 	LEFT_PAREN,
 	RIGHT_PAREN,
-  	LEFT_ARROW,
-  	RIGHT_ARROW,
-  	COMMENT,
-  	NEWLINE,
-  	UNKNOWN
+  LEFT_ARROW,
+  RIGHT_ARROW,
+  COMMENT,
+  NEWLINE,
+  UNKNOWN
 } token_type;
 
+typedef struct token token;
+typedef struct token_list* token_list_t; 
+typedef struct token_list token_list;
+
+
+void add_token(token to_add, token_list_t head);
+
+/////////////////////////////////////////////////
+//////////  Command Stream Definition  //////////
+/////////////////////////////////////////////////
+
+typedef struct command *command_t;
+typedef struct command_stream *command_stream_t;
+
+typedef struct node* node_t;
+typedef struct node node;
+
+void initialize_stream(command_stream_t);
+void add_command(command_t to_add_command, command_stream_t m_command_stream);
+
+/////////////////////////////////////////////////
+/////////////  Additional Functions  ////////////
+/////////////////////////////////////////////////
 
 bool is_valid(char character);
+
 char* read_file_into_buffer(int (*get_next_byte) (void *), void *get_next_byte_argument);
+token_list_t convert_to_tokens(char* buffer);
+
+/////////////////////////////////////////////////
+////////////////  Given Functions  //////////////
+/////////////////////////////////////////////////
 
 /* Create a command stream from LABEL, GETBYTE, and ARG.  A reader of
    the command stream will invoke GETBYTE (ARG) to get the next byte.
