@@ -17,6 +17,14 @@ typedef struct token {
   char* words;
 } token;
 
+typedef struct token_list* token_list_t; 
+
+typedef struct token_list {
+  token m_token;
+  token_list_t m_next;
+  token_list_t m_prev;
+} token_list;
+
 bool is_valid(char character) {
 
   if(isalnum(character))
@@ -40,6 +48,86 @@ bool is_valid(char character) {
       return false;
   }
 
+}
+
+//////////////////////////////////////////////////////////////
+/////////////  Command Stream Implementation  ////////////////
+//////////////////////////////////////////////////////////////
+typedef struct node* node_t;
+
+typedef struct node {
+  command_t m_dataptr;
+  node_t m_next;
+} node;
+
+typedef struct command_stream {
+  node_t m_head;
+  int size;
+} command_stream;
+
+
+void add_command(command_t to_add_command, command_stream_t m_command_stream) {
+
+  // empty stream
+  if(m_command_stream->m_head == NULL) {
+    m_command_stream->m_head = (node_t) checked_malloc(sizeof(command_stream));
+
+    // initialize node
+    m_command_stream->m_head->m_dataptr = to_add_command;
+    m_command_stream->m_head->m_next = NULL;
+  }
+  else // ! empty stream
+  {
+    node_t p = m_command_stream->m_head;
+    // seek p to point to the last node
+    for(; p->m_next != NULL; p = p->m_next) {}
+
+    // initialize new node
+    p->m_next = (node_t) checked_malloc(sizeof(node));
+    p->m_next->m_next = NULL;
+    p->m_next->m_dataptr = to_add_command;
+  }
+
+  m_command_stream->size++;
+  return;
+}
+
+// Converts input buffer into a linked list of tokens 
+// This helps to categorize the inputs
+token_list_t convert_to_tokens(char* buffer) {
+
+  int iter = 0;
+  char current;
+  char next;
+
+  // empty buffer case
+  if(buffer[iter] == '\0')
+    return NULL;
+
+  // While we are not at the end of the buffer
+   while (buffer[iter] != '\0') {
+
+    current = buffer[iter++];
+    next = buffer[iter];
+
+    switch(current) {
+      case '&':
+      case '|':
+      case ';':
+      case '(':
+      case ')':
+      case '<':
+      case '>':
+      case '\n':
+      case ' ':
+      case '\t':
+      default:
+        break;
+    }
+  }
+
+
+  return NULL;
 }
 
 // Progress: Done and Working
@@ -100,6 +188,7 @@ make_command_stream (int (*get_next_byte) (void *),
   // Read data into buffer and preprocess
   char* buffer = read_file_into_buffer(get_next_byte, get_next_byte_argument);
 
+  token_list_t token_list = convert_to_tokens(buffer);
 
   error (1, 0, "End of function: make_command_stream");
   return 0;
