@@ -8,15 +8,37 @@
 #include <stdlib.h>
 #include <stdbool.h>
 #include <stdio.h>
+#include <ctype.h>
 
-/* FIXME: You may need to add #include directives, macro definitions,
-   static function definitions, etc.  */
+typedef struct token {
+  token_type type;
+  char* words;
+} token;
 
-/* FIXME: Define the type 'struct command_stream' here.  This should
-   complete the incomplete type declaration in command.h.  */
+bool is_valid(char character) {
 
-// TODO don't forget to call free at the end of the program to free 
-// all the memory (do it in a remove function) 
+  if(isalnum(character))
+    return true;
+
+  switch(character)
+  {
+    case '!':
+    case '%':
+    case '+':
+    case ',':
+    case '-':
+    case '.':
+    case '/':
+    case ':':
+    case '@':
+    case '^':
+    case '_':
+      return true;
+    default:
+      return false;
+  }
+
+}
 
 //////////////////////////////////////////////////////////////
 /////////////  Command Stream Implementation  ////////////////
@@ -127,39 +149,67 @@ void* pop(stack_t* stack) {
   return to_return;
 }
 
-//////////////////////////////////////////////////////////////
-//////////////////  Stack Implementation  ////////////////////
-//////////////////////////////////////////////////////////////
+// Progress: Done and Working
+// Read file into buffer and preprocess the characters:
+// Comments removed
+char* read_file_into_buffer(int (*get_next_byte) (void *), void *get_next_byte_argument) 
+{
+  size_t capacity = 1024; // arbitrary size
+  size_t iter = 0;
+  char* buffer = (char*) checked_malloc(capacity);
+  char next_byte;
+
+  // loop through entire file
+  while ((next_byte = get_next_byte(get_next_byte_argument)) != EOF) {
+
+    // Comment: loop until newline
+    if(next_byte == '#') {
+      while ((next_byte = get_next_byte(get_next_byte_argument)) != '\n') 
+      {
+        // test
+        // printf("%c", next_byte);
+      }
+
+      // get next byte disregard '\n'
+      continue;
+    }
+  
+    // store in buffer
+    buffer[iter++] = next_byte;
+
+    // if buffer full
+    if (capacity == iter)
+      buffer = (char*) checked_grow_alloc(buffer, &capacity);
+  }
+
+  // null terminate buffer 
+  buffer[iter] = '\0';
+  
+  // test  
+  printf("%s", buffer);
+
+  return buffer;
+}
+
 
 command_stream_t
 make_command_stream (int (*get_next_byte) (void *),
 		     void *get_next_byte_argument)
 {
-  // These data structures will be important later
-  stack_t* command_stack = (stack_t*) malloc(sizeof(stack_t));
-  stack_t* operator_stack = (stack_t*) malloc(sizeof(stack_t));
-  command_stack->is_command_stack = true;
-  operator_stack->is_command_stack = false;
-  
-  // Grab bytes to fill buffer
-  char next_byte = (*get_next_byte)(get_next_byte_argument);
-  int capacity = 1000;
-  char* buffer[capacity];
-  int i = 0;
+  /*
+    General Method:
+    1. Read Data into Buffer and Preprocess
+    2. Create tokens and append into linked list
+    3. Check to make sure tokens are valid
+    4. Convert list of tokens into commands
 
-  while (next_byte != EOF) {
-    // TODO: Casting not working here (getc returns int)
-    buffer[i] = (char) next_byte;
-    i++;
-    // buffer is too small for next byte
-    if (i + 1 > capacity) {
-      buffer = (char*) checked_realloc(buffer, capacity*2);
-      capacity *= 2;
-    }
-    next_byte = (*get_next_byte)(get_next_byte_argument);
-  }
+  */
 
-  // error (1, 0, "command reading not yet implemented1");
+  // Read data into buffer and preprocess
+  char* buffer = read_file_into_buffer(get_next_byte, get_next_byte_argument);
+
+
+  error (1, 0, "End of function: make_command_stream");
   return 0;
 }
 
