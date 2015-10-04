@@ -1,4 +1,19 @@
-This is a skeleton for CS 111 Lab 1.
+CS111 Lab 1:
 
-Replace this README file with notes on your implementation.
-Mentions any special features or limitations.
+Ryan Peterman: 704269982
+Sean Wang :
+
+Current Method:
+
+	1. Read input file into a buffer and remove commands as we read it into the buffer
+		Status: Done and Verified
+
+	2. Convert input buffer into a linked list of tokens, which are catagorized/labeled operators and commands 
+		Status: Done and Minimally Verified
+
+	3. Pass through the created linked list of tokens to make sure the ordering is syntactically valid
+		Status: Ryan Implementing
+
+	4. Now we take the valid list of tokens and create a command stream using an operator stack and a command stack
+	to create the command trees that will be linked up in our command stream
+		Status: Sean Implementing

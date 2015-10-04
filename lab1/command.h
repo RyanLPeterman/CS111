@@ -15,7 +15,6 @@ typedef enum token_type
 	RIGHT_PAREN,
   LEFT_ARROW,
   RIGHT_ARROW,
-  COMMENT,
   NEWLINE,
   UNKNOWN
 } token_type;
@@ -23,7 +22,6 @@ typedef enum token_type
 typedef struct token token;
 typedef struct token_list* token_list_t; 
 typedef struct token_list token_list;
-
 
 void add_token(token to_add, token_list_t head);
 
@@ -44,10 +42,17 @@ void add_command(command_t to_add_command, command_stream_t m_command_stream);
 /////////////  Additional Functions  ////////////
 /////////////////////////////////////////////////
 
+// Checks if passed in character matches characters allowed by the spec
 bool is_valid(char character);
 
+// Reads input file into a buffer while parsing out the comments
 char* read_file_into_buffer(int (*get_next_byte) (void *), void *get_next_byte_argument);
+
+// Creates a linked list of tokens given an input buffer
 token_list_t convert_to_tokens(char* buffer);
+
+// Checks passed in token_list to verify that token ordering is syntactically valid
+void check_token_list(token_list_t token_list);
 
 /////////////////////////////////////////////////
 ////////////////  Given Functions  //////////////

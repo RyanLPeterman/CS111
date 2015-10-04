@@ -121,6 +121,7 @@ void add_command(command_t to_add_command, command_stream_t m_command_stream) {
   return;
 }
 
+// Progress: Done and tested minimally
 // Converts input buffer into a linked list of tokens 
 // This helps to categorize the inputs
 token_list_t convert_to_tokens(char* buffer) {
@@ -259,6 +260,12 @@ token_list_t convert_to_tokens(char* buffer) {
   return m_head;
 }
 
+// Progress: Ryan Implementing
+// Checks passed in token_list to verify that token ordering is syntactically valid
+void check_token_list(token_list_t token_list) {
+  return;
+}
+
 // Progress: Done and Working
 // Read file into buffer and preprocess the characters:
 // Comments removed
@@ -301,7 +308,6 @@ char* read_file_into_buffer(int (*get_next_byte) (void *), void *get_next_byte_a
   return buffer;
 }
 
-
 command_stream_t
 make_command_stream (int (*get_next_byte) (void *),
 		     void *get_next_byte_argument)
@@ -311,7 +317,7 @@ make_command_stream (int (*get_next_byte) (void *),
     1. Read Data into Buffer and Preprocess
     2. Create tokens and append into linked list
     3. Check to make sure tokens are valid
-    4. Convert list of tokens into commands
+    4. Convert list of tokens into command trees
   */
 
   // Read data into buffer and preprocess
