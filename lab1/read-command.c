@@ -15,6 +15,7 @@
 typedef struct token {
   token_type type;
   char* words;
+  int lin_num;
 } token;
 
 typedef struct token_list* token_list_t; 
@@ -25,7 +26,34 @@ typedef struct token_list {
   token_list_t m_prev;
 } token_list;
 
-bool is_valid(char character) {
+void add_token(token to_add, token_list_t head) {
+
+  // empty list
+  if(head == NULL) {
+    head = (token_list_t) checked_malloc(sizeof(token_list));
+
+    // initialize node
+    head->m_token = to_add;
+    head->m_next = NULL;
+  }
+  else // !empty list
+  {
+    token_list_t p = head;
+
+    // seek p to point to the last node
+    for(; p->m_next != NULL; p = p->m_next) {}
+
+    // initialize new node
+    p->m_next = (token_list_t) checked_malloc(sizeof(token_list));
+    p->m_next->m_next = NULL;
+    p->m_next->m_prev = p;
+    p->m_next->m_token = to_add;
+  }
+
+  return;
+}
+
+bool is_valid_char(char character) {
 
   if(isalnum(character))
     return true;
@@ -96,6 +124,15 @@ void add_command(command_t to_add_command, command_stream_t m_command_stream) {
 // This helps to categorize the inputs
 token_list_t convert_to_tokens(char* buffer) {
 
+  // list info
+  token_list_t m_head = NULL;
+  token_list_t p = m_head;
+
+  // token info
+  token_type type;
+  int lin_num;
+  
+  // iteration variables
   int iter = 0;
   char current;
   char next;
@@ -105,29 +142,120 @@ token_list_t convert_to_tokens(char* buffer) {
     return NULL;
 
   // While we are not at the end of the buffer
-   while (buffer[iter] != '\0') {
+  while (buffer[iter] != '\0') {
 
-    current = buffer[iter++];
-    next = buffer[iter];
+    current = buffer[iter];
+    next = buffer[iter + 1];
 
     switch(current) {
       case '&':
+        // correctly have '&&'
+        if(current == next) {
+          type = AND;
+          iter++; // inc to account for one '&'
+        }
+        else
+          type = UNKNOWN;
+
+        break;
+
       case '|':
+        if(current == next) {
+          type = OR;
+          iter++;
+        }
+        else
+          type = PIPE;
+
+        break;
+
       case ';':
+        type = SEMICOLON;
+        break;
+
       case '(':
+        type = LEFT_PAREN;
+        break;
+
       case ')':
+        type = RIGHT_PAREN;
+        break;
+
       case '<':
+        type = LEFT_ARROW;
+        break;
+
       case '>':
+        type = RIGHT_ARROW;
+        break;
+
+      // skip over newlines and increment linum
       case '\n':
+        type = NEWLINE;
+
+        // advance iter to first nonnewline char
+        while(buffer[iter] == '\n') {
+          iter++;
+          lin_num++; 
+        }
+
+        // move back one to account for addition at the end
+        iter--;
+        break;
+
+      // skip over whitespace
       case ' ':
       case '\t':
+        iter++;
+        continue;
       default:
+        type = UNKNOWN;
         break;
     }
+
+    // Word Case
+    int len = 1;
+    int word_begin = iter;
+    if (is_valid_char(current)) {
+      type = WORD;
+      // loop through word and keep track of length
+      for(; is_valid_char(buffer[iter + len]); len++) {}
+
+      // advance iterator to last character of word
+      iter += len - 1;
+    }
+
+    // Now add token to linked list
+    token* temp_token = (token*) checked_malloc(sizeof(token));
+    temp_token->type = type;
+    temp_token->lin_num = lin_num;
+
+    // Print error message
+    if (type == UNKNOWN) {
+      fprintf(stderr, "Error: Line %i: Unknown Token -> %c \n", lin_num, current);
+      exit(1);
+    }
+    else if (type == WORD) {
+      // Allocate memory for full string
+      temp_token->words = (char*) checked_malloc((sizeof(char) * len) + 1); //+1 for '\0'
+      int i = 0;
+
+      // Store characters
+      for(; i < len; i++) {
+        temp_token->words[i] = buffer[word_begin + i];
+      }
+
+      // Null terminate string
+      temp_token->words[i] = '\0';
+    }
+    else 
+      temp_token->words = NULL;
+  
+    add_token(*temp_token, m_head);
+    iter++;
   }
 
-
-  return NULL;
+  return m_head;
 }
 
 // Progress: Done and Working
