@@ -7,6 +7,7 @@
 #include <stdbool.h>  // for bool types
 #include <stdio.h>
 #include <ctype.h>    // for isalnum()
+#include <string.h>   // for strcpy()
 
 bool is_valid_char(char character) {
   if(isalnum(character))
@@ -46,31 +47,58 @@ struct token_list {
   token_list_t m_prev;
 };
 
-void add_token(token to_add, token_list_t head) {
+void add_token(token* to_add, token_list_t* head) {
 
   // empty list
-  if(head == NULL) {
-    head = (token_list_t) checked_malloc(sizeof(token_list));
+  if((*head) == NULL) {
+    (*head) = (token_list_t) checked_malloc(sizeof(token_list));
 
     // initialize node
-    head->m_token = to_add;
-    head->m_next = NULL;
+    (*head)->m_token.type = to_add->type;
+    (*head)->m_token.lin_num = to_add->lin_num;
+
+    if(to_add->type == WORD) {
+      int len = strlen(to_add->words);
+
+      (*head)->m_token.words = checked_malloc((sizeof(char) * len) + 1);
+      strcpy((*head)->m_token.words, to_add->words);
+      to_add->words[len] = '\0';
+    }
+    else 
+      (*head)->m_token.words = NULL;
+
+    (*head)->m_next = NULL;
+    (*head)->m_prev = NULL;
   }
   else // !empty list
   {
-    token_list_t p = head;
+    token_list_t p = (*head);
 
     // seek p to point to the last node
     for(; p->m_next != NULL; p = p->m_next) {}
 
     // initialize new node
     p->m_next = (token_list_t) checked_malloc(sizeof(token_list));
-    p->m_next->m_next = NULL;
-    p->m_next->m_prev = p;
-    p->m_next->m_token = to_add;
-  }
 
-  return;
+    token_list_t last_node = p->m_next;
+
+    last_node->m_token.type = to_add->type;
+    last_node->m_token.lin_num = to_add->lin_num;
+
+    if(to_add->type == WORD)
+    {
+      int len = strlen(to_add->words);
+
+      last_node->m_token.words = checked_malloc((sizeof(char) * len) + 1);
+      strcpy(last_node->m_token.words, to_add->words);
+      last_node->m_token.words[len] = '\0';
+    }
+    else 
+      last_node->m_token.words = NULL;
+
+    last_node->m_next = NULL;
+    last_node->m_prev = p;
+  }
 }
 //////////////////////////////////////////////////////////////
 /////////////  Command Stream Implementation  ////////////////
@@ -121,7 +149,7 @@ void add_command(command_t to_add_command, command_stream_t m_command_stream) {
   return;
 }
 
-// Progress: Done and tested minimally
+// Progress: Done and tested (verified with printed out stream)
 // Converts input buffer into a linked list of tokens 
 // This helps to categorize the inputs
 token_list_t convert_to_tokens(char* buffer) {
@@ -132,7 +160,7 @@ token_list_t convert_to_tokens(char* buffer) {
 
   // token info
   token_type type;
-  int lin_num;
+  int lin_num = 1;
   
   // iteration variables
   int iter = 0;
@@ -253,7 +281,9 @@ token_list_t convert_to_tokens(char* buffer) {
     else 
       temp_token->words = NULL;
   
-    add_token(*temp_token, m_head);
+    add_token(temp_token, &m_head);
+
+    free(temp_token);
     iter++;
   }
 
@@ -390,6 +420,70 @@ void check_token_list(token_list_t token_list) {
   }
 }
 
+// print all tokens in list for the sake of debugging
+// prints one out on each line in the following format:
+// Type: token_type Line Number: lin_num Words: "Words"
+void print_token_list(token_list_t token_list) {
+
+  token_list_t ptr = token_list;
+  // buffer to hold name of token
+  int max_size_string = 10;
+  char* token_type_name = checked_malloc(sizeof(char) * max_size_string);
+  int count = 0;
+
+  while(ptr != NULL) {
+    switch(ptr->m_token.type) {
+      case SEMICOLON:
+        strcpy(token_type_name, ";");
+        break;
+      case OR:
+        strcpy(token_type_name, "||");
+        break;
+      case AND:
+        strcpy(token_type_name, "&&");
+        break;
+      case PIPE:
+        strcpy(token_type_name, "|");
+        break;  
+      case LEFT_PAREN:
+        strcpy(token_type_name, "(");
+        break;
+      case RIGHT_PAREN:
+        strcpy(token_type_name, ")");
+        break;
+      case LEFT_ARROW:
+        strcpy(token_type_name, "<");
+        break;
+      case RIGHT_ARROW:
+        strcpy(token_type_name, ">");
+        break;
+      case WORD:
+        strcpy(token_type_name, "Word");
+        break;
+      case NEWLINE:
+        strcpy(token_type_name, "\\n");
+        break;
+      case UNKNOWN:
+        strcpy(token_type_name, "Unknown");
+        break;
+      default:
+        break;
+    }
+
+    // Print report one per line
+    fprintf(stdout, "Type: %s Line Number: %i Words: %s \n", token_type_name, ptr->m_token.lin_num, ptr->m_token.words);
+    
+    // Increment Variables
+    count++;
+    ptr = ptr->m_next;
+  }
+
+  fprintf(stdout, "Total number of tokens : %i \n", count);
+
+  free (token_type_name);
+  return;
+}
+
 // Progress: Done and Working
 // Read file into buffer and preprocess the characters:
 // Comments removed
@@ -450,19 +544,21 @@ make_command_stream (int (*get_next_byte) (void *),
   token_list_t token_list = convert_to_tokens(buffer);
 
   if(token_list == NULL) {
-    fprintf(stderr, "Error: Null Token List");
+    fprintf(stderr, "Error: Null Token List After Buffer Passed in");
     return NULL;
   }
 
+  // For debugging purposes
+  print_token_list(token_list);
+
   // Check the list of tokens for syntax and ordering
-  check_token_list(token_list);
+  // check_token_list(token_list);
 
   // Take use linked list of tokens to make a command stream
   // command_stream_t command_stream = TODO;error (1, 0, "End of function: make_command_stream");
 
   // return command_stream;
 
-  error (1, 0, "End of function: make_command_stream");
   return 0;
 }
 

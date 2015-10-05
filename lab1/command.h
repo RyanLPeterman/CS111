@@ -23,7 +23,7 @@ typedef struct token token;
 typedef struct token_list* token_list_t; 
 typedef struct token_list token_list;
 
-void add_token(token to_add, token_list_t head);
+void add_token(token* to_add, token_list_t* head);
 
 /////////////////////////////////////////////////
 //////////  Command Stream Definition  //////////
@@ -53,6 +53,9 @@ token_list_t convert_to_tokens(char* buffer);
 
 // Checks passed in token_list to verify that token ordering is syntactically valid
 void check_token_list(token_list_t token_list);
+
+// For debugging purposes
+void print_token_list(token_list_t token_list);
 
 /////////////////////////////////////////////////
 ////////////////  Given Functions  //////////////
