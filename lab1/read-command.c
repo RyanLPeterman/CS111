@@ -260,10 +260,134 @@ token_list_t convert_to_tokens(char* buffer) {
   return m_head;
 }
 
-// Progress: Ryan Implementing
+// Progress: Done and needs Verification
 // Checks passed in token_list to verify that token ordering is syntactically valid
 void check_token_list(token_list_t token_list) {
-  return;
+
+  // Null pointer case
+  if (token_list == NULL){
+    fprintf(stderr, "Error: token_list is NULL");
+    exit(1);
+  }
+
+  token_list_t curr_ptr = token_list;
+  token_list_t prev = NULL;  // Init after moving forward one
+
+  token next_token, prev_token, curr_token;
+
+
+  int paren_count = 0; // For subshell depth
+  FILE* f_ptr;  // For IO redirect < >
+
+  // while there are tokens in the list
+  while (curr_ptr != NULL) {
+
+    curr_token = curr_ptr->m_token;
+
+    if(curr_ptr->m_next != 0) {
+      next_token = curr_ptr->m_next->m_token;
+      prev_token = curr_ptr->m_prev->m_token; // What if m_prev is null?
+    }
+
+    switch (curr_token.type) {
+      
+      // Cannot be first token or appear consecutively
+      case SEMICOLON:
+        if (curr_ptr->m_next != NULL) {
+          // Consecutive semicolon case
+          if (next_token.type == SEMICOLON) {
+            fprintf(stderr, "Error: Line %i: Semicolons cannot appear consecutively", curr_token.lin_num);
+            exit(1);
+          }
+          // Semicolons are treated as newlines if not inside a subshell
+          if (paren_count == 0) {
+            curr_ptr->m_token.type = NEWLINE;
+          }
+        }
+        // End of list
+        else 
+          prev->m_next = NULL;
+        break;
+
+      // Newline Case: Can be before parenthesis or filenames 
+      case NEWLINE:
+        if (curr_ptr->m_next != NULL) {
+          // If next token is a word or paren
+          if((next_token.type == WORD) || (next_token.type == LEFT_PAREN) || (next_token.type == RIGHT_PAREN)) {
+            // Newline Cannot be before IO Redirection
+            if((prev_token.type == LEFT_ARROW) || (prev_token.type == RIGHT_ARROW)) {
+              fprintf(stderr, "Error: Line %i: Newline cannot be before IO Redirection < >", curr_token.lin_num);
+              exit(1);
+            }
+            // break out of switch statement to continue iteration
+            else if ((prev_token.type == AND) || (prev_token.type == OR) || (prev_token.type == PIPE) || (prev_token.type == SEMICOLON)) {
+              break;
+            }
+            // Commands Split by newline therefore can be seen as a semicolon
+            else if ((paren_count > 0) && (prev_token.type != LEFT_PAREN)) 
+              curr_ptr->m_token.type = SEMICOLON;
+          }
+          // Consecutive Newlines
+          else if (next_token.type == NEWLINE) {
+            prev = curr_ptr;
+            curr_ptr = curr_ptr->m_next;
+            continue;
+          }
+          else {
+            fprintf(stderr, "Error: Line %i: Newline can only be followed by file names and parenthesis", curr_token.lin_num);
+            exit(1);
+          }
+        }
+        // end of list
+        else
+          prev->m_next = NULL;
+        // IO redirection error testcase
+        if ((prev_token.type == RIGHT_ARROW) || (prev_token.type == LEFT_ARROW)) {
+          fprintf(stderr, "Error: Line %i: Newline cannot follow IO Redirection < >", curr_token.lin_num);
+          exit(1);
+        }
+        break;
+
+      // IO Redirect Case: must always be followed by a word which represents
+      // a filename. If looking for input file it must already exist
+      case LEFT_ARROW:
+      case RIGHT_ARROW:
+        if((next_token.type != WORD) || (curr_ptr->m_next == NULL)) {
+          fprintf(stderr, "Error: Line %i: IO Redirection must be followed by a word \n", curr_token.lin_num);
+          exit(1);
+        }
+        // Check to see if there is an existing file
+        if(curr_token.type == LEFT_ARROW) {
+          if((f_ptr = fopen(next_token.words, "r"))) {
+            fclose(f_ptr);
+          }
+          // no existing file
+          else  {
+            fprintf(stderr, "Error: Line %i: For '<', no file to accept input from found", curr_token.lin_num);
+            exit(1);
+          }
+        }
+        break;
+      
+      // increase scope
+      case LEFT_PAREN:
+        paren_count++;
+        break;
+
+      // decrease scope
+      case RIGHT_PAREN:
+        if (paren_count > 0) 
+          paren_count--;
+        break;
+
+      default:
+        break;
+    }
+
+    // Increment iterating variables
+    prev = curr_ptr;
+    curr_ptr = curr_ptr->m_next;    
+  }
 }
 
 // Progress: Done and Working
@@ -324,6 +448,19 @@ make_command_stream (int (*get_next_byte) (void *),
   char* buffer = read_file_into_buffer(get_next_byte, get_next_byte_argument);
 
   token_list_t token_list = convert_to_tokens(buffer);
+
+  if(token_list == NULL) {
+    fprintf(stderr, "Error: Null Token List");
+    return NULL;
+  }
+
+  // Check the list of tokens for syntax and ordering
+  check_token_list(token_list);
+
+  // Take use linked list of tokens to make a command stream
+  // command_stream_t command_stream = TODO;error (1, 0, "End of function: make_command_stream");
+
+  // return command_stream;
 
   error (1, 0, "End of function: make_command_stream");
   return 0;
