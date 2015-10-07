@@ -105,8 +105,170 @@ void free_token_list(token_list_t* head) {
 
   // TODO frees token list after use
   return;
+}
+
+//////////////////////////////////////////////////////////////
+///////////////////  Stack Implementation  ///////////////////
+//////////////////////////////////////////////////////////////
+
+struct st_node {
+  st_node_t m_next;
+  st_node_t m_prev;
+  command_t m_data;
+};
+
+struct stack {
+  int m_size;
+  st_node_t m_top;
+};
+
+stack_t init_stack() {
+  stack_t stack = checked_malloc(sizeof(stack));
+  stack->m_size = 0;
+  stack->m_top = NULL;
+
+  return stack;
+}
+
+void push(command_t to_add, stack_t stack){
+
+  st_node_t top_node;
+
+  // empty stack case
+  if(stack->m_size == 0) {
+    stack->m_top = checked_malloc(sizeof(st_node));
+
+    top_node = stack->m_top;
+    top_node->m_next = NULL;
+    top_node->m_prev = NULL;
+    top_node->m_data = to_add;
+
+    // increment size
+    stack->m_size++;
+
+    return;
+  }
+
+  // allocate space for a new top_node
+  top_node = stack->m_top;
+  top_node->m_next = checked_malloc(sizeof(st_node));
+
+  // For readability
+  st_node_t new_top_node = top_node->m_next;
+
+  new_top_node->m_next = NULL;
+  new_top_node->m_prev = top_node;
+  new_top_node->m_data = to_add;
+
+  // Set Stack top pointer up one node
+  stack->m_top = new_top_node;
+
+  // increment size
+  stack->m_size++;
+
+  return;
+}
+
+command_t pop(stack_t stack) {
+
+  // Grab command from top node
+  st_node_t top_node = stack->m_top;
+  command_t to_pop = top_node->m_data;
+
+  // Set stack top pointer back one node
+  stack->m_top = top_node->m_prev;
+  stack->m_size--;
+
+  // free node
+  free(top_node);
+
+  return to_pop;
+}
+
+command_t peek(stack_t stack) {
+  return stack->m_top->m_data;
+}
+
+bool isEmpty(stack_t stack) {
+  if(stack->m_top == NULL)
+    return true;
+  else
+    return false;
+}
+
+// For debugging purposes
+void print_stack(stack_t stack) {
+
+  int MAX_SIZE = 9;
+  char* command_name = checked_malloc(sizeof(char) * MAX_SIZE);
+
+  int i = 0;
+  st_node_t ptr = stack->m_top;
+
+  fprintf(stdout, "TOP OF STACK: \n");
+  for (;i < stack->m_size; i++) {
+
+    switch(ptr->m_data->type) {
+      case AND_COMMAND:
+        strcpy(command_name, "AND_COMMAND");
+        break;
+      case SEQUENCE_COMMAND:
+        strcpy(command_name, "SEQUENCE_COMMAND");
+        break;
+      case OR_COMMAND:
+        strcpy(command_name, "OR_COMMAND");
+        break;
+      case PIPE_COMMAND:
+        strcpy(command_name, "PIPE_COMMAND");
+        break;
+      case SIMPLE_COMMAND:
+        strcpy(command_name, "SIMPLE_COMMAND");
+        break;
+      case SUBSHELL_COMMAND:
+        strcpy(command_name, "SUBSHELL_COMMAND");
+        break;
+    }
+
+    fprintf(stdout, "Command #%i -> Type : %s \n", i + 1, command_name);
+
+    ptr = ptr->m_prev;
+  }
+
+  free(command_name);
+}
+
+void test_stack() {
+
+  stack_t stack = init_stack();
+  int i = 0;
+  for(;i < 3; i++)
+  {
+    command_t temp = checked_malloc(sizeof(command));
+    temp->type = AND_COMMAND;
+
+    push(temp, stack);
+  }
+
+  print_stack(stack);
+
+  fprintf(stdout, "Is it empty? : %s \n", isEmpty(stack) ? "true" : "false");
+
+  free_stack(stack);
 
 }
+
+void free_stack(stack_t stack) {
+
+  int i = 0;
+  for(; i < stack->m_size; i++) {
+    st_node_t temp = stack->m_top;
+
+    stack->m_top = stack->m_top->m_prev;
+
+    free(temp);
+  }
+}
+
 //////////////////////////////////////////////////////////////
 /////////////  Command Stream Implementation  ////////////////
 //////////////////////////////////////////////////////////////
@@ -230,14 +392,9 @@ token_list_t convert_to_tokens(char* buffer) {
       case '\n':
         type = NEWLINE;
 
-        // advance iter to first nonnewline char
-        while(buffer[iter] == '\n') {
-          iter++;
-          lin_num++; 
-        }
+        // increment lin_num
+        lin_num++; 
 
-        // move back one to account for addition at the end
-        iter--;
         break;
 
       // skip over whitespace
@@ -545,7 +702,7 @@ make_command_stream (int (*get_next_byte) (void *),
     4. Convert list of tokens into command trees
   */
 
-  // Read data into buffer and preprocess
+  Read data into buffer and preprocess
   char* buffer = read_file_into_buffer(get_next_byte, get_next_byte_argument);
 
   token_list_t token_list = convert_to_tokens(buffer);
@@ -556,10 +713,11 @@ make_command_stream (int (*get_next_byte) (void *),
   }
 
   // For debugging purposes
-  print_token_list(token_list);
+  // print_token_list(token_list);
+  // test_stack();
 
-  // Check the list of tokens for syntax and ordering
-  // check_token_list(token_list);
+  Check the list of tokens for syntax and ordering
+  check_token_list(token_list);
 
   // Take use linked list of tokens to make a command stream
   // command_stream_t command_stream = TODO;

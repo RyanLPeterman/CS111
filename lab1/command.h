@@ -30,6 +30,7 @@ void free_token_list(token_list_t* head);
 //////////  Command Stream Definition  //////////
 /////////////////////////////////////////////////
 
+typedef struct command command;
 typedef struct command *command_t;
 typedef struct command_stream *command_stream_t;
 
@@ -38,6 +39,25 @@ typedef struct node node;
 
 void initialize_stream(command_stream_t);
 void add_command(command_t to_add_command, command_stream_t m_command_stream);
+
+/////////////////////////////////////////////////
+///////////////  Stack Definition  //////////////
+/////////////////////////////////////////////////
+
+typedef struct st_node st_node;
+typedef struct st_node* st_node_t;
+
+typedef struct stack stack;
+typedef struct stack* stack_t;
+
+stack_t init_stack();
+void push(command_t to_add, stack_t stack);
+command_t pop(stack_t stack);
+command_t peek(stack_t stack);
+bool isEmpty(stack_t stack);
+void free_stack(stack_t stack);
+void print_stack(stack_t stack);
+void test_stack();
 
 /////////////////////////////////////////////////
 /////////////  Additional Functions  ////////////
