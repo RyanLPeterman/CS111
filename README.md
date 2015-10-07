@@ -1,14 +1,35 @@
 # CS111 Operating Systems
 
-## Project List:
+	Professor: Peter Reiher
+	University: UCLA
 
-	*Lab 1A - In progress
-	*Minilab 1 - In progress
+### Project List
 
-## Group Members: 
+	----------------------------------
+	| Project | Status | Group (y/n) | 
+	---------------------------------- 
+	| Lab 1A | In progress | y |
+	------------------------------
+	| Minilab 1 | In progress | n |
+	------------------------------
+	| Lab 1B | Not Assigned Yet | y |
+	------------------------------------
+	| Minilab 2 | Not Assigned Yet | n |
+	------------------------------------
+	| Lab 1C | Not Assigned Yet | y |
+	---------------------------------
+	| Lab 2 | Not Assigned Yet | y |
+	--------------------------------
+	| Lab 3 | Not Assigned Yet | y |
+	--------------------------------
 
-	*Name: Ryan Peterman
-	*UID: 704269982
 
-	*Name: Sean Wang
-	*UID: 604151638
+### Group Members: 
+
+	Name: Ryan Peterman
+	UID: 704269982
+
+	Name: Sean Wang
+	UID: 604151638
+
+
