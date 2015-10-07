@@ -100,6 +100,13 @@ void add_token(token* to_add, token_list_t* head) {
     last_node->m_prev = p;
   }
 }
+
+void free_token_list(token_list_t* head) {
+
+  // TODO frees token list after use
+  return;
+
+}
 //////////////////////////////////////////////////////////////
 /////////////  Command Stream Implementation  ////////////////
 //////////////////////////////////////////////////////////////
@@ -555,7 +562,7 @@ make_command_stream (int (*get_next_byte) (void *),
   // check_token_list(token_list);
 
   // Take use linked list of tokens to make a command stream
-  // command_stream_t command_stream = TODO;error (1, 0, "End of function: make_command_stream");
+  // command_stream_t command_stream = TODO;
 
   // return command_stream;
 

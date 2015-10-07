@@ -24,6 +24,7 @@ typedef struct token_list* token_list_t;
 typedef struct token_list token_list;
 
 void add_token(token* to_add, token_list_t* head);
+void free_token_list(token_list_t* head);
 
 /////////////////////////////////////////////////
 //////////  Command Stream Definition  //////////

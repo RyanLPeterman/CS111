@@ -1,4 +1,14 @@
-# CS111
-Group project for operating systems class
+# CS111 Operating Systems
 
-Group Members: Sean Wang & Ryan Peterman 
+## Project List:
+
+	*Lab 1A - In progress
+	*Minilab 1 - In progress
+
+## Group Members: 
+
+	*Name: Ryan Peterman
+	*UID: 704269982
+
+	*Name: Sean Wang
+	*UID: 604151638
