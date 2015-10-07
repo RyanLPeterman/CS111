@@ -365,7 +365,7 @@ command_t traverse(command_stream_t cStream){
   return NULL;
 }
 
-//Dumps contents for debugging
+// Dumps contents for debugging
 void dump_stream(command_stream_t cStream){
   if(cStream->m_head == NULL && cStream->m_curr == NULL){
     fprintf(stderr, "Command Stream Empty");
@@ -770,11 +770,13 @@ char* read_file_into_buffer(int (*get_next_byte) (void *), void *get_next_byte_a
 }
 
 command_t form_basic_command(int type){
+
   command_t cmd = checked_malloc(sizeof(struct command));
   cmd->type = type;
   cmd->status = -1;
   cmd->input = NULL;
   cmd->output = NULL;
+
   switch(type){
     case SEQUENCE_COMMAND:
     case PIPE_COMMAND:
@@ -783,124 +785,154 @@ command_t form_basic_command(int type){
     {
       cmd->u.command[0] = NULL; // parse this later
       cmd->u.command[1] = NULL; // parse this later
-    }break;
+    }
+      break;
+
     default:
       cmd->u.subshell_command = NULL;
+      break;
   }
   return cmd;
 }
 
 command_stream_t make_basic_stream(token_list_t tList){
+
+  // allocate memory
   command_stream_t cStream = checked_malloc(sizeof(struct command_stream));
+  // instantiate stream
   initialize_stream(cStream);
-    while(tList != NULL){
+
+  while(tList != NULL){
     switch(tList->m_token.type){
-      
-      //WORD tokens to commands
+
+      // WORD tokens to commands
       case WORD:
       {
-	command_t cmd = checked_malloc(sizeof(struct command));
-	cmd->type = SIMPLE_COMMAND;
-	cmd->status = -1;
-	cmd->input = NULL;
-	cmd->output = NULL;
-	int num_words = 1;
-	
-	token_list_t wordPtr = tList;
-	
-	while(wordPtr->m_next != NULL && wordPtr->m_next->m_token.type == WORD){
-	  num_words++;
-	  wordPtr = wordPtr->m_next;
-	  if(wordPtr->m_next == NULL){break;}
-	}
-      
-	cmd->u.word = (char**)checked_malloc((num_words));
-      
-	int ii = 0;
-	for(; ii < num_words; ii++){
-	  cmd->u.word[ii] = checked_malloc(sizeof(char) * (strlen(tList->m_token.words)+1) );
-	  strcpy(cmd->u.word[ii], tList->m_token.words);
-	  fprintf(stderr, "Word added to simple command is: %s\n", cmd->u.word[ii]);
-	  tList = tList->m_next;
-	 }
-	 add_command(cmd,cStream);
-      } break;
-      
+      	command_t cmd = checked_malloc(sizeof(struct command));
+      	cmd->type = SIMPLE_COMMAND;
+      	cmd->status = -1;
+      	cmd->input = NULL;
+      	cmd->output = NULL;
+      	int num_words = 1;
+      	
+      	token_list_t wordPtr = tList;
+      	
+      	while(wordPtr->m_next != NULL && wordPtr->m_next->m_token.type == WORD){
+      	  num_words++;
+      	  wordPtr = wordPtr->m_next;
+      	  if(wordPtr->m_next == NULL){break;}
+      	}
+            
+      	cmd->u.word = (char**)checked_malloc((num_words));
+            
+      	int ii = 0;
+      	for(; ii < num_words; ii++){
+      	  cmd->u.word[ii] = checked_malloc(sizeof(char) * (strlen(tList->m_token.words)+1) );
+      	  strcpy(cmd->u.word[ii], tList->m_token.words);
+      	  fprintf(stderr, "Word added to simple command is: %s\n", cmd->u.word[ii]);
+      	  tList = tList->m_next;
+      	 }
+      	 add_command(cmd,cStream);
+      } 
+        break;
+        
       case SEMICOLON:
       {
-	command_t cmd = form_basic_command(SEQUENCE_COMMAND);
-	add_command(cmd,cStream);
-	fprintf(stderr, "SEQUENCE_COMMAND added\n");
-	tList = tList->m_next;
-      } break;
+      	command_t cmd = form_basic_command(SEQUENCE_COMMAND);
+      	add_command(cmd,cStream);
+      	fprintf(stderr, "SEQUENCE_COMMAND added\n");
+      	tList = tList->m_next;
+      } 
+      
+        break;
+
       case PIPE:
       {
-	command_t cmd = form_basic_command(PIPE_COMMAND);
-	add_command(cmd,cStream);
-	fprintf(stderr, "PIPE_COMMAND added\n");
-	tList = tList->m_next;
-      } break;
+      	command_t cmd = form_basic_command(PIPE_COMMAND);
+      	add_command(cmd,cStream);
+      	fprintf(stderr, "PIPE_COMMAND added\n");
+      	tList = tList->m_next;
+      } 
+
+        break;
+
       case AND:
       {
-	command_t cmd = form_basic_command(AND_COMMAND);
-	add_command(cmd,cStream);
-	fprintf(stderr, "AND_COMMAND added\n");
-	tList = tList->m_next;
-      } break;
+      	command_t cmd = form_basic_command(AND_COMMAND);
+      	add_command(cmd,cStream);
+      	fprintf(stderr, "AND_COMMAND added\n");
+      	tList = tList->m_next;
+      } 
+
+      break;
       case OR:
       {
-	command_t cmd = form_basic_command(OR_COMMAND);
-	add_command(cmd,cStream);
-	fprintf(stderr, "OR_COMMAND added\n");
-	tList = tList->m_next;
-      } break;
+        command_t cmd = form_basic_command(OR_COMMAND);
+        add_command(cmd,cStream);
+        fprintf(stderr, "OR_COMMAND added\n");
+        tList = tList->m_next;
+      } 
+
+        break;
+
       case LEFT_ARROW:
       {
-	//technically not a command type but parse this later
-	//call this type (7)
-	command_t cmd = form_basic_command(7);
-	add_command(cmd,cStream);
-	fprintf(stderr, "LEFT_ARROW added\n");
-	tList = tList->m_next;
-      } break;
+      	//technically not a command type but parse this later
+      	//call this type (7)
+      	command_t cmd = form_basic_command(7);
+      	add_command(cmd,cStream);
+      	fprintf(stderr, "LEFT_ARROW added\n");
+      	tList = tList->m_next;
+      } 
+
+        break;
+
       case RIGHT_ARROW:
       {
-	//technically not a command type but parse this later
-	//call this type (8)
-	command_t cmd = form_basic_command(8);
-	add_command(cmd,cStream);
-	fprintf(stderr, "RIGHT_ARROW added\n");
-	tList = tList->m_next;
-      } break;
+        //technically not a command type but parse this later
+        //call this type (8)
+        command_t cmd = form_basic_command(8);
+        add_command(cmd,cStream);
+        fprintf(stderr, "RIGHT_ARROW added\n");
+        tList = tList->m_next;
+      } 
+        break;
+
       case LEFT_PAREN:
       {
-	//assume valid
-	//call this type (9)
-	command_t cmd = form_basic_command(9);
-	add_command(cmd,cStream);
-	fprintf(stderr, "LEFT_PAREN added\n");
-	tList = tList->m_next;
-      } break;
+      	//assume valid
+      	//call this type (9)
+      	command_t cmd = form_basic_command(9);
+      	add_command(cmd,cStream);
+      	fprintf(stderr, "LEFT_PAREN added\n");
+      	tList = tList->m_next;
+      } 
+        break;
+
       case RIGHT_PAREN:
       {
-	//assume valid
-	//call this type (10)
-	command_t cmd = form_basic_command(10);
-	add_command(cmd,cStream);
-	fprintf(stderr, "RIGHT_PAREN added\n");
-	tList = tList->m_next;
-      } break;
+      	//assume valid
+      	//call this type (10)
+      	command_t cmd = form_basic_command(10);
+      	add_command(cmd,cStream);
+      	fprintf(stderr, "RIGHT_PAREN added\n");
+      	tList = tList->m_next;
+        } 
+
+        break;
       case NEWLINE:
       {
-	//call this type (11)
-	command_t cmd = form_basic_command(11);
-	add_command(cmd,cStream);
-	fprintf(stderr, "NEWLINE added\n");
-	tList = tList->m_next;
-      } break;
+      	//call this type (11)
+      	command_t cmd = form_basic_command(11);
+      	add_command(cmd,cStream);
+      	fprintf(stderr, "NEWLINE added\n");
+      	tList = tList->m_next;
+      } 
+        break;
       default:
-	fprintf(stderr, "not supposed to end up here!!!");
+  	    fprintf(stderr, "not supposed to end up here!!!");
     }
+
     fprintf(stderr, "done\n");
   }
   dump_stream(cStream);
@@ -1108,8 +1140,6 @@ make_command_stream (int (*get_next_byte) (void *),
   //free_token_list(token_list);
   // return command_stream;
   
-  
-
   return 0;
 }
 

@@ -46,8 +46,16 @@ void initialize_stream(command_stream_t m_command_stream);
 // Add command to command stream
 void add_command(command_t to_add_command, command_stream_t m_command_stream);
 
+// Set cur pointer back to head
+void reset_traverse(command_stream_t cStream);
+
+command_t traverse(command_stream_t cStream);
+
+// For debugging
+void dump_stream(command_stream_t cStream);
+
 // Free memory allocated to stream
-void free_stream();
+void free_stream(command_stream_t m_command_stream);
 
 /////////////////////////////////////////////////
 ///////////////  Stack Definition  //////////////
@@ -101,6 +109,15 @@ void check_token_list(token_list_t token_list);
 
 // For debugging purposes
 void print_token_list(token_list_t token_list);
+
+
+command_t form_basic_command(int type);
+
+command_stream_t make_basic_stream(token_list_t tList);
+
+command_stream_t make_advanced_stream(command_stream_t basic_stream);
+
+void test_word_func();
 
 /////////////////////////////////////////////////
 ////////////////  Given Functions  //////////////
