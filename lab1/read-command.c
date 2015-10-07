@@ -331,6 +331,40 @@ void add_command(command_t to_add_command, command_stream_t m_command_stream) {
   return;
 }
 
+//Manipulate curr pointer to traverse
+void reset_traverse(command_stream_t cStream){
+  cStream->m_curr = cStream->m_head;
+}
+
+command_t traverse(command_stream_t cStream){
+  if(cStream == NULL){
+    fprintf(stderr, "NULL Command Stream");
+    return NULL;
+  }
+  if(cStream->m_head == NULL && cStream->m_curr == NULL){
+    fprintf(stderr, "Command Stream Empty");
+    return NULL;
+  }
+  if(cStream->m_curr == NULL){
+    fprintf(stderr, "End of Stream");
+    return NULL;
+  }
+  
+  else{
+    command_t cmd = checked_malloc(sizeof(struct command));
+    cmd->type = cStream->m_curr->m_dataptr->type;
+    cmd->status = cStream->m_curr->m_dataptr->status;
+    cmd->input = cStream->m_curr->m_dataptr->input;
+    cmd->output = cStream->m_curr->m_dataptr->output;
+    cmd->u = cStream->m_curr->m_dataptr->u;
+    cStream->m_curr = cStream->m_curr->m_next;
+    fprintf(stderr, "Type of command is: %d\n",cmd->type);
+    return cmd;
+  }
+  
+  fprintf(stderr, "ERROR in stream traversal\n");
+  return NULL;
+}
 
 //Dumps contents for debugging
 void dump_stream(command_stream_t cStream){
@@ -740,8 +774,8 @@ command_t form_basic_command(int type){
   command_t cmd = checked_malloc(sizeof(struct command));
   cmd->type = type;
   cmd->status = -1;
-  char* input = NULL;
-  char* output = NULL;
+  cmd->input = NULL;
+  cmd->output = NULL;
   switch(type){
     case SEQUENCE_COMMAND:
     case PIPE_COMMAND:
@@ -769,8 +803,8 @@ command_stream_t make_basic_stream(token_list_t tList){
 	command_t cmd = checked_malloc(sizeof(struct command));
 	cmd->type = SIMPLE_COMMAND;
 	cmd->status = -1;
-	char* input = NULL;
-	char* output = NULL;
+	cmd->input = NULL;
+	cmd->output = NULL;
 	int num_words = 1;
 	
 	token_list_t wordPtr = tList;
@@ -1010,11 +1044,17 @@ void test_word_func(){
   add_token(temp, &tList);
   
   command_stream_t cs = make_basic_stream(tList);
+  reset_traverse(cs);
+  
+  while(cs->m_curr != NULL){
+    traverse(cs);
+  }
 }
 
-command_stream_t make_advanced_stream(command_stream_t basic_stream){
+
+//command_stream_t make_advanced_stream(command_stream_t basic_stream){
   
-}
+//}
 
 command_stream_t
 make_command_stream (int (*get_next_byte) (void *),
