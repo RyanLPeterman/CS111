@@ -190,7 +190,6 @@ command_t pop(stack_t stack) {
   // Set stack top pointer back one node
   stack->m_top = top_node->m_prev;
   stack->m_size--;
-
   // free node
   free(top_node);
 
@@ -362,7 +361,7 @@ command_t traverse(command_stream_t cStream){
     return cmd;
   }
   
-  fprintf(stderr, "ERROR in stream traversal\n");
+  fprintf(stderr, "ERROR in stream traversal\n"); //This should never execute
   return NULL;
 }
 
@@ -560,7 +559,7 @@ void check_token_list(token_list_t token_list) {
     }
     if(curr_ptr->m_prev != 0) {
       prev_token = curr_ptr->m_prev->m_token; 
-    }
+    }command_t cmd = checked_malloc(sizeof(struct command));
 
     switch (curr_token.type) {
       
@@ -1052,9 +1051,20 @@ void test_word_func(){
 }
 
 
-//command_stream_t make_advanced_stream(command_stream_t basic_stream){
-  
-//}
+command_stream_t make_advanced_stream(command_stream_t basic_stream){
+  //Use stack algorithm and precedence to get final command_stream
+  command_t cmd;
+  stack_t com_stack = init_stack();
+  stack_t op_stack = init_stack();
+  reset_traverse(basic_stream);
+  while(basic_stream->m_curr != NULL){
+    cmd = traverse(basic_stream);
+    if(cmd->type == SIMPLE_COMMAND)
+    {
+    }
+  }
+  return NULL; // TODO: FINISH THIS
+}
 
 command_stream_t
 make_command_stream (int (*get_next_byte) (void *),
@@ -1106,6 +1116,10 @@ make_command_stream (int (*get_next_byte) (void *),
 command_t
 read_command_stream (command_stream_t s)
 {
+  
+  //assume initial run is on command stream with m_curr set to m_head
+  //run reset_traverse to set m_curr to m_head
+  return traverse(s);
 
   // needs code to move m_curr to the correct command TODO
 
