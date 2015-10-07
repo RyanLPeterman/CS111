@@ -42,4 +42,4 @@
 
 	3. Command Stream - a linked list of commands (each of which branch of into command trees based on the command data structure given). This linked list has a head pointer, current pointer, and a size variable. The current pointer allows us to iterate through the list and also keep track of the end of the list when adding nodes.
 
-	4. Command Stack and Operator Stack - TODO
+	4. Command Stack and Operator Stack - a linked list of commands. Contains a pointer to the top of the stack and also maintains a variable that contains the current size of the stack as well. 

@@ -23,8 +23,11 @@ typedef struct token token;
 typedef struct token_list* token_list_t; 
 typedef struct token_list token_list;
 
+// Add token to linked list
 void add_token(token* to_add, token_list_t* head);
-void free_token_list(token_list_t* head);
+
+// Free memory allocated to linked list
+void free_token_list(token_list_t head);
 
 /////////////////////////////////////////////////
 //////////  Command Stream Definition  //////////
@@ -37,8 +40,14 @@ typedef struct command_stream *command_stream_t;
 typedef struct node* node_t;
 typedef struct node node;
 
-void initialize_stream(command_stream_t);
+// Constructor
+void initialize_stream(command_stream_t m_command_stream);
+
+// Add command to command stream
 void add_command(command_t to_add_command, command_stream_t m_command_stream);
+
+// Free memory allocated to stream
+void free_stream();
 
 /////////////////////////////////////////////////
 ///////////////  Stack Definition  //////////////
@@ -50,13 +59,28 @@ typedef struct st_node* st_node_t;
 typedef struct stack stack;
 typedef struct stack* stack_t;
 
+// Constructor
 stack_t init_stack();
+
+// Add command onto stack
 void push(command_t to_add, stack_t stack);
+
+// Remove and return top command of stack
 command_t pop(stack_t stack);
+
+// Return top command on stack
 command_t peek(stack_t stack);
+
+// Check if stack is empty
 bool isEmpty(stack_t stack);
+
+// Free all memory allocated to stack
 void free_stack(stack_t stack);
+
+// Print out contents of stack
 void print_stack(stack_t stack);
+
+// Testing Data Structure
 void test_stack();
 
 /////////////////////////////////////////////////
@@ -64,7 +88,7 @@ void test_stack();
 /////////////////////////////////////////////////
 
 // Checks if passed in character matches characters allowed by the spec
-bool is_valid(char character);
+bool is_valid_char(char character);
 
 // Reads input file into a buffer while parsing out the comments
 char* read_file_into_buffer(int (*get_next_byte) (void *), void *get_next_byte_argument);
