@@ -61,9 +61,12 @@ void add_token(token* to_add, token_list_t* head) {
     if(to_add->type == WORD) {
       int len = strlen(to_add->words);
 
-      (*head)->m_token.words = checked_malloc((sizeof(char) * len) + 1);
+      //(*head)->m_token.words = checked_malloc((sizeof(char) * len) + 1);
+      //changed to below for clarity \/
+      (*head)->m_token.words = checked_malloc(sizeof(char) * (len + 1) );
       strcpy((*head)->m_token.words, to_add->words);
-      to_add->words[len] = '\0';
+      //to_add->words[len] = '\0'; // This line causes the segfault
+      (*head)->m_token.words[len] = '\0'; //meant this instead (I think)
     }
     else 
       (*head)->m_token.words = NULL;
@@ -327,6 +330,22 @@ void add_command(command_t to_add_command, command_stream_t m_command_stream) {
   m_command_stream->m_size++;
   return;
 }
+
+
+//Dumps contents for debugging
+void dump_stream(command_stream_t cStream){
+  if(cStream->m_head == NULL && cStream->m_curr == NULL){
+    fprintf(stderr, "Command Stream Empty");
+  }
+  else{
+    node_t iter = cStream->m_head;
+    while(iter){
+      fprintf(stderr,"Type of command is: %d\n",iter->m_dataptr->type);
+      iter = iter->m_next;
+    }
+  }
+}
+
 // Frees up allocated memory
 void free_stream(command_stream_t m_command_stream) {
   int i = 0;
@@ -717,6 +736,286 @@ char* read_file_into_buffer(int (*get_next_byte) (void *), void *get_next_byte_a
   return buffer;
 }
 
+command_t form_basic_command(int type){
+  command_t cmd = checked_malloc(sizeof(struct command));
+  cmd->type = type;
+  cmd->status = -1;
+  char* input = NULL;
+  char* output = NULL;
+  switch(type){
+    case SEQUENCE_COMMAND:
+    case PIPE_COMMAND:
+    case AND_COMMAND:
+    case OR_COMMAND:
+    {
+      cmd->u.command[0] = NULL; // parse this later
+      cmd->u.command[1] = NULL; // parse this later
+    }break;
+    default:
+      cmd->u.subshell_command = NULL;
+  }
+  return cmd;
+}
+
+command_stream_t make_basic_stream(token_list_t tList){
+  command_stream_t cStream = checked_malloc(sizeof(struct command_stream));
+  initialize_stream(cStream);
+    while(tList != NULL){
+    switch(tList->m_token.type){
+      
+      //WORD tokens to commands
+      case WORD:
+      {
+	command_t cmd = checked_malloc(sizeof(struct command));
+	cmd->type = SIMPLE_COMMAND;
+	cmd->status = -1;
+	char* input = NULL;
+	char* output = NULL;
+	int num_words = 1;
+	
+	token_list_t wordPtr = tList;
+	
+	while(wordPtr->m_next != NULL && wordPtr->m_next->m_token.type == WORD){
+	  num_words++;
+	  wordPtr = wordPtr->m_next;
+	  if(wordPtr->m_next == NULL){break;}
+	}
+      
+	cmd->u.word = (char**)checked_malloc((num_words));
+      
+	int ii = 0;
+	for(; ii < num_words; ii++){
+	  cmd->u.word[ii] = checked_malloc(sizeof(char) * (strlen(tList->m_token.words)+1) );
+	  strcpy(cmd->u.word[ii], tList->m_token.words);
+	  fprintf(stderr, "Word added to simple command is: %s\n", cmd->u.word[ii]);
+	  tList = tList->m_next;
+	 }
+	 add_command(cmd,cStream);
+      } break;
+      
+      case SEMICOLON:
+      {
+	command_t cmd = form_basic_command(SEQUENCE_COMMAND);
+	add_command(cmd,cStream);
+	fprintf(stderr, "SEQUENCE_COMMAND added\n");
+	tList = tList->m_next;
+      } break;
+      case PIPE:
+      {
+	command_t cmd = form_basic_command(PIPE_COMMAND);
+	add_command(cmd,cStream);
+	fprintf(stderr, "PIPE_COMMAND added\n");
+	tList = tList->m_next;
+      } break;
+      case AND:
+      {
+	command_t cmd = form_basic_command(AND_COMMAND);
+	add_command(cmd,cStream);
+	fprintf(stderr, "AND_COMMAND added\n");
+	tList = tList->m_next;
+      } break;
+      case OR:
+      {
+	command_t cmd = form_basic_command(OR_COMMAND);
+	add_command(cmd,cStream);
+	fprintf(stderr, "OR_COMMAND added\n");
+	tList = tList->m_next;
+      } break;
+      case LEFT_ARROW:
+      {
+	//technically not a command type but parse this later
+	//call this type (7)
+	command_t cmd = form_basic_command(7);
+	add_command(cmd,cStream);
+	fprintf(stderr, "LEFT_ARROW added\n");
+	tList = tList->m_next;
+      } break;
+      case RIGHT_ARROW:
+      {
+	//technically not a command type but parse this later
+	//call this type (8)
+	command_t cmd = form_basic_command(8);
+	add_command(cmd,cStream);
+	fprintf(stderr, "RIGHT_ARROW added\n");
+	tList = tList->m_next;
+      } break;
+      case LEFT_PAREN:
+      {
+	//assume valid
+	//call this type (9)
+	command_t cmd = form_basic_command(9);
+	add_command(cmd,cStream);
+	fprintf(stderr, "LEFT_PAREN added\n");
+	tList = tList->m_next;
+      } break;
+      case RIGHT_PAREN:
+      {
+	//assume valid
+	//call this type (10)
+	command_t cmd = form_basic_command(10);
+	add_command(cmd,cStream);
+	fprintf(stderr, "RIGHT_PAREN added\n");
+	tList = tList->m_next;
+      } break;
+      case NEWLINE:
+      {
+	//call this type (11)
+	command_t cmd = form_basic_command(11);
+	add_command(cmd,cStream);
+	fprintf(stderr, "NEWLINE added\n");
+	tList = tList->m_next;
+      } break;
+      default:
+	fprintf(stderr, "not supposed to end up here!!!");
+    }
+    fprintf(stderr, "done\n");
+  }
+  dump_stream(cStream);
+  return cStream;
+}
+
+void test_word_func(){
+  token_list_t tList = NULL;
+  token* temp = NULL;
+  
+  temp = (token*) checked_malloc(sizeof(token));
+  temp->type = WORD;
+  temp->words = "apple";
+  temp->lin_num = 0;
+  add_token(temp, &tList);
+  
+  temp = (token*) checked_malloc(sizeof(token));
+  temp->type = WORD;
+  temp->words = "apple";
+  temp->lin_num = 0;
+  add_token(temp, &tList);
+  
+  temp = (token*) checked_malloc(sizeof(token));
+  temp->type = WORD;
+  temp->words = "apple";
+  temp->lin_num = 0;
+  add_token(temp, &tList);
+  
+  temp = (token*) checked_malloc(sizeof(token));
+  temp->type = OR;
+  temp->lin_num = 0;
+  add_token(temp, &tList);
+  
+  temp = (token*) checked_malloc(sizeof(token));
+  temp->type = WORD;
+  temp->words = "apple";
+  temp->lin_num = 0;
+  add_token(temp, &tList);
+  
+  temp = (token*) checked_malloc(sizeof(token));
+  temp->type = PIPE;
+  temp->lin_num = 0;
+  add_token(temp, &tList);
+  
+  temp = (token*) checked_malloc(sizeof(token));
+  temp->type = WORD;
+  temp->words = "boy";
+  temp->lin_num = 0;
+  add_token(temp, &tList);
+  
+  temp = (token*) checked_malloc(sizeof(token));
+  temp->type = SEMICOLON;
+  temp->lin_num = 0;
+  add_token(temp, &tList);
+  
+  temp = (token*) checked_malloc(sizeof(token));
+  temp->type = WORD;
+  temp->words = "cat";
+  temp->lin_num = 0;
+  add_token(temp, &tList);
+  
+  temp = (token*) checked_malloc(sizeof(token));
+  temp->type = AND;
+  temp->lin_num = 0;
+  add_token(temp, &tList);
+  
+  temp = (token*) checked_malloc(sizeof(token));
+  temp->type = WORD;
+  temp->words = "dog";
+  temp->lin_num = 0;
+  add_token(temp, &tList);
+  
+  temp = (token*) checked_malloc(sizeof(token));
+  temp->type = SEMICOLON;
+  temp->lin_num = 0;
+  add_token(temp, &tList);
+  
+  temp = (token*) checked_malloc(sizeof(token));
+  temp->type = WORD;
+  temp->words = "dog";
+  temp->lin_num = 0;
+  add_token(temp, &tList);
+  
+  temp = (token*) checked_malloc(sizeof(token));
+  temp->type = LEFT_ARROW;//LEFT ARROW (7)
+  temp->lin_num = 0;
+  add_token(temp, &tList);
+  
+  temp = (token*) checked_malloc(sizeof(token));
+  temp->type = WORD;
+  temp->words = "dog";
+  temp->lin_num = 0;
+  add_token(temp, &tList);
+  
+  temp = (token*) checked_malloc(sizeof(token));
+  temp->type = RIGHT_ARROW;//RIGHT ARROW (8)
+  temp->lin_num = 0;
+  add_token(temp, &tList);
+  
+  temp = (token*) checked_malloc(sizeof(token));
+  temp->type = WORD;
+  temp->words = "dog";
+  temp->lin_num = 0;
+  add_token(temp, &tList);
+  
+  temp = (token*) checked_malloc(sizeof(token));
+  temp->type = SEMICOLON;
+  temp->lin_num = 0;
+  add_token(temp, &tList);
+  
+  temp = (token*) checked_malloc(sizeof(token));
+  temp->type = LEFT_PAREN;//LEFT PAREN (9)
+  temp->lin_num = 0;
+  add_token(temp, &tList);
+  
+  temp = (token*) checked_malloc(sizeof(token));
+  temp->type = WORD;
+  temp->words = "dog";
+  temp->lin_num = 0;
+  add_token(temp, &tList);
+  
+  temp = (token*) checked_malloc(sizeof(token));
+  temp->type = OR;
+  temp->lin_num = 0;
+  add_token(temp, &tList);
+  
+  temp = (token*) checked_malloc(sizeof(token));
+  temp->type = NEWLINE;//NEWLINE (11)
+  temp->lin_num = 0;
+  add_token(temp, &tList);
+  
+  temp = (token*) checked_malloc(sizeof(token));
+  temp->type = NEWLINE;//NEWLINE (11)
+  temp->lin_num = 0;
+  add_token(temp, &tList);
+  
+  temp = (token*) checked_malloc(sizeof(token));
+  temp->type = RIGHT_PAREN;//RIGHT_PAREN (10)
+  temp->lin_num = 0;
+  add_token(temp, &tList);
+  
+  command_stream_t cs = make_basic_stream(tList);
+}
+
+command_stream_t make_advanced_stream(command_stream_t basic_stream){
+  
+}
+
 command_stream_t
 make_command_stream (int (*get_next_byte) (void *),
 		     void *get_next_byte_argument)
@@ -728,7 +1027,13 @@ make_command_stream (int (*get_next_byte) (void *),
     3. Check to make sure tokens are valid
     4. Convert list of tokens into command trees
   */
-
+  
+  
+  //Debugging of token list to command stream
+  //test_cw();
+  test_word_func();
+  
+  
   // Read data into buffer and preprocess
   char* buffer = read_file_into_buffer(get_next_byte, get_next_byte_argument);
 
@@ -744,13 +1049,16 @@ make_command_stream (int (*get_next_byte) (void *),
   // test_stack();
 
   // Check the list of tokens for syntax and ordering
-  check_token_list(token_list);
+  //check_token_list(token_list);
+
 
   // Take use linked list of tokens to make a command stream
   // command_stream_t command_stream = TODO;
 
-  free_token_list(token_list);
+  //free_token_list(token_list);
   // return command_stream;
+  
+  
 
   return 0;
 }
