@@ -9,17 +9,11 @@
 	| Project | Status |  Group (y/n)   | 
 	|:-------:|:------:|:--------------:| 
 	| Lab 1A | In progress | y          |
-	|--------|-------------|------------|
 	| Minilab 1 | In progress | n       |
-	|-----------|-------------|---------|
 	| Lab 1B | Not Assigned Yet | y     |
-	|--------|------------------|-------|
 	| Minilab 2 | Not Assigned Yet | n  |
-	|--------|---------------------|----|
 	| Lab 1C | Not Assigned Yet | y     |
-	|-------|-------------------|-------|
 	| Lab 2 | Not Assigned Yet | y      |
-	|-------|------------------|--------|
 	| Lab 3 | Not Assigned Yet | y      |
 
 
