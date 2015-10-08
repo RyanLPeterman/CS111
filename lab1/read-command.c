@@ -376,6 +376,7 @@ void dump_stream(command_stream_t cStream){
       fprintf(stderr,"Type of command is: %d\n",iter->m_dataptr->type);
       iter = iter->m_next;
     }
+    fprintf(stderr,"SEPARATE\n");
   }
 }
 
@@ -1112,6 +1113,9 @@ command_stream_t solve_newlines(command_stream_t nlStream){
     if(cmd->type == 11){
       //if prev command was operator
       if(prev_command_was_operator){
+	if (traverse(nlStream) == NULL){
+	  break;
+	}
 	while(traverse(nlStream)->type == 11){
 	  ;//skip the newlines
 	}
@@ -1120,8 +1124,7 @@ command_stream_t solve_newlines(command_stream_t nlStream){
 	continue;
       }
       if(traverse(nlStream) == NULL){
-	//end of stream
-	return cStream;
+	break;
       }
       
       //create a new tree
@@ -1150,6 +1153,7 @@ command_stream_t solve_newlines(command_stream_t nlStream){
       }
     }
   }
+  dump_stream(cStream);
   return cStream;
     
     //if newline
@@ -1224,6 +1228,9 @@ command_stream_t make_advanced_stream(command_stream_t basic_stream){
 	out_com->output = out_file;
 	push(out_com,com_stack);
       }
+    }
+    if(cmd->type == 77){
+      add_command(pop(com_stack),cStream);
     }
   }
   
