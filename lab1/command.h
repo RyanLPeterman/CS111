@@ -52,7 +52,7 @@ void reset_traverse(command_stream_t cStream);
 command_t traverse(command_stream_t cStream);
 
 // For debugging
-void dump_stream(command_stream_t cStream);
+void print_stream(command_stream_t cStream);
 
 // Free memory allocated to stream
 void free_stream(command_stream_t m_command_stream);
@@ -110,6 +110,11 @@ void check_token_list(token_list_t token_list);
 // For debugging purposes
 void print_token_list(token_list_t token_list);
 
+// Returns true if the type is an operator
+bool is_operator(int type);
+
+// Returns the precendence of a passed in operator
+int get_precedence(int type);
 
 command_t form_basic_command(int type);
 
