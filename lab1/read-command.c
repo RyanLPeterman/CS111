@@ -345,7 +345,7 @@ command_t traverse(command_stream_t cStream){
     return NULL;
   }
   if(cStream->m_curr == NULL){
-    fprintf(stderr, "End of Stream");
+    //fprintf(stderr, "End of Stream");
     return NULL;
   }
   
@@ -357,7 +357,7 @@ command_t traverse(command_stream_t cStream){
     cmd->output = cStream->m_curr->m_dataptr->output;
     cmd->u = cStream->m_curr->m_dataptr->u;
     cStream->m_curr = cStream->m_curr->m_next;
-    fprintf(stderr, "Type of command is: %d\n",cmd->type);
+    //fprintf(stderr, "Type of command is: %d\n",cmd->type);
     return cmd;
   }
   
@@ -373,7 +373,7 @@ void dump_stream(command_stream_t cStream){
   else{
     node_t iter = cStream->m_head;
     while(iter){
-      fprintf(stderr,"Type of command is: %d\n",iter->m_dataptr->type);
+      //fprintf(stderr,"Type of command is: %d\n",iter->m_dataptr->type);
       iter = iter->m_next;
     }
   }
@@ -829,7 +829,7 @@ command_stream_t make_basic_stream(token_list_t tList){
       	for(; ii < num_words; ii++){
       	  cmd->u.word[ii] = checked_malloc(sizeof(char) * (strlen(tList->m_token.words)+1) );
       	  strcpy(cmd->u.word[ii], tList->m_token.words);
-      	  fprintf(stderr, "Word added to simple command is: %s\n", cmd->u.word[ii]);
+      	  //fprintf(stderr, "Word added to simple command is: %s\n", cmd->u.word[ii]);
       	  tList = tList->m_next;
       	 }
       	 add_command(cmd,cStream);
@@ -840,7 +840,7 @@ command_stream_t make_basic_stream(token_list_t tList){
       {
       	command_t cmd = form_basic_command(SEQUENCE_COMMAND);
       	add_command(cmd,cStream);
-      	fprintf(stderr, "SEQUENCE_COMMAND added\n");
+      	//fprintf(stderr, "SEQUENCE_COMMAND added\n");
       	tList = tList->m_next;
       } 
       
@@ -850,7 +850,7 @@ command_stream_t make_basic_stream(token_list_t tList){
       {
       	command_t cmd = form_basic_command(PIPE_COMMAND);
       	add_command(cmd,cStream);
-      	fprintf(stderr, "PIPE_COMMAND added\n");
+      	//fprintf(stderr, "PIPE_COMMAND added\n");
       	tList = tList->m_next;
       } 
 
@@ -860,7 +860,7 @@ command_stream_t make_basic_stream(token_list_t tList){
       {
       	command_t cmd = form_basic_command(AND_COMMAND);
       	add_command(cmd,cStream);
-      	fprintf(stderr, "AND_COMMAND added\n");
+      	//fprintf(stderr, "AND_COMMAND added\n");
       	tList = tList->m_next;
       } 
 
@@ -869,7 +869,7 @@ command_stream_t make_basic_stream(token_list_t tList){
       {
         command_t cmd = form_basic_command(OR_COMMAND);
         add_command(cmd,cStream);
-        fprintf(stderr, "OR_COMMAND added\n");
+        //fprintf(stderr, "OR_COMMAND added\n");
         tList = tList->m_next;
       } 
 
@@ -881,7 +881,7 @@ command_stream_t make_basic_stream(token_list_t tList){
       	//call this type (7)
       	command_t cmd = form_basic_command(7);
       	add_command(cmd,cStream);
-      	fprintf(stderr, "LEFT_ARROW added\n");
+      	//fprintf(stderr, "LEFT_ARROW added\n");
       	tList = tList->m_next;
       } 
 
@@ -893,7 +893,7 @@ command_stream_t make_basic_stream(token_list_t tList){
         //call this type (8)
         command_t cmd = form_basic_command(8);
         add_command(cmd,cStream);
-        fprintf(stderr, "RIGHT_ARROW added\n");
+        //fprintf(stderr, "RIGHT_ARROW added\n");
         tList = tList->m_next;
       } 
         break;
@@ -904,7 +904,7 @@ command_stream_t make_basic_stream(token_list_t tList){
       	//call this type (9)
       	command_t cmd = form_basic_command(9);
       	add_command(cmd,cStream);
-      	fprintf(stderr, "LEFT_PAREN added\n");
+      	//fprintf(stderr, "LEFT_PAREN added\n");
       	tList = tList->m_next;
       } 
         break;
@@ -915,7 +915,7 @@ command_stream_t make_basic_stream(token_list_t tList){
       	//call this type (10)
       	command_t cmd = form_basic_command(10);
       	add_command(cmd,cStream);
-      	fprintf(stderr, "RIGHT_PAREN added\n");
+      	//fprintf(stderr, "RIGHT_PAREN added\n");
       	tList = tList->m_next;
         } 
 
@@ -925,7 +925,7 @@ command_stream_t make_basic_stream(token_list_t tList){
       	//call this type (11)
       	command_t cmd = form_basic_command(11);
       	add_command(cmd,cStream);
-      	fprintf(stderr, "NEWLINE added\n");
+      	//fprintf(stderr, "NEWLINE added\n");
       	tList = tList->m_next;
       } 
         break;
@@ -933,7 +933,7 @@ command_stream_t make_basic_stream(token_list_t tList){
   	    fprintf(stderr, "not supposed to end up here!!!");
     }
 
-    fprintf(stderr, "done\n");
+    //fprintf(stderr, "done\n");
   }
   dump_stream(cStream);
   return cStream;
@@ -1082,20 +1082,91 @@ void test_word_func(){
   }
 }
 
+int get_precedence(int type){
+  if(type == PIPE_COMMAND)
+    return 3;
+  if(type == AND_COMMAND || type == OR_COMMAND)
+    return 2;
+  if(type == SEQUENCE_COMMAND)
+    return 1;
+  fprintf(stderr, "unknown precedence detected");
+  return -1;
+}
 
+bool is_operator(int type){
+  return (type == PIPE_COMMAND || type == AND_COMMAND || type == OR_COMMAND || type == SEQUENCE_COMMAND);
+}
+
+
+//perhaps a way to deal with subshells
 command_stream_t make_advanced_stream(command_stream_t basic_stream){
   //Use stack algorithm and precedence to get final command_stream
+  command_stream_t cStream = checked_malloc(sizeof(struct command_stream));
+  initialize_stream(cStream);
   command_t cmd;
   stack_t com_stack = init_stack();
   stack_t op_stack = init_stack();
   reset_traverse(basic_stream);
   while(basic_stream->m_curr != NULL){
-    cmd = traverse(basic_stream);
+    cmd = traverse(basic_stream); //moves the curr pointer
     if(cmd->type == SIMPLE_COMMAND)
     {
+      push(cmd, com_stack);
+      continue;
+    }
+    if(is_operator(cmd->type)){
+      if(isEmpty(op_stack)){
+	push(cmd, op_stack);
+      }
+      else{
+	
+	//9 stands for left paren
+	while( (peek(op_stack)->type != 9) && (get_precedence(cmd->type) <= get_precedence(peek(op_stack)->type)) ){
+	  command_t op = pop(op_stack);
+	  command_t com2 = pop(com_stack);
+	  command_t com1 = pop(com_stack);
+	  
+	  //combine the 3 commands into 1 command
+	  command_t new_com = checked_malloc(sizeof(struct command));
+	  new_com->type = op->type;
+	  new_com->status = -1;//maybe change later
+	  new_com->input = NULL;
+	  new_com->output = NULL;
+	  new_com->u.command[0] = com1;
+	  new_com->u.command[1] = com2;
+	  
+	  push(new_com, com_stack);
+	  if(isEmpty(op_stack))
+	    break;
+	  push(cmd, op_stack);
+	}
+      }
+    }
+    if(cmd->type == 7 || cmd->type == 8){
+      //If one of the arrow commands (7 for left '<' 8 for right '>')
+      if(cmd->type == 7 ){
+	//This is '<'
+	//Assume correct tokens and next is a word
+	command_t in_com = pop(com_stack);
+	char* in_file = traverse(basic_stream)->u.word[0];
+	in_com->input = in_file;
+	push(in_com,com_stack);
+      }
+      else{
+	//This is '>'
+	//Assume correct tokens and next is a word
+	command_t out_com = pop(com_stack);
+	char* out_file = traverse(basic_stream)->u.word[0];
+	out_com->output = out_file;
+	push(out_com,com_stack);
+      }
     }
   }
-  return NULL; // TODO: FINISH THIS
+  
+  //reached end of stream
+  //pop the command_t into the command stream
+  add_command(pop(com_stack),cStream);
+  return cStream; // TODO: FINISH THIS
 }
 
 command_stream_t
@@ -1113,7 +1184,7 @@ make_command_stream (int (*get_next_byte) (void *),
   
   //Debugging of token list to command stream
   //test_cw();
-  test_word_func();
+  //test_word_func();
   
   
   // Read data into buffer and preprocess
@@ -1125,6 +1196,8 @@ make_command_stream (int (*get_next_byte) (void *),
     fprintf(stderr, "Error: Null Token List After Buffer Passed in");
     return NULL;
   }
+  
+  return make_advanced_stream(make_basic_stream(token_list));
 
   // For debugging purposes
   // print_token_list(token_list);
