@@ -391,7 +391,7 @@ void print_stream(command_stream_t cStream){
   else{
     node_t iter = cStream->m_head;
     while(iter){
-      //fprintf(stderr,"Type of command is: %d\n",iter->m_dataptr->type);
+      fprintf(stderr,"Type of command is: %d\n",iter->m_dataptr->type);
       iter = iter->m_next;
     }
   }
@@ -1107,7 +1107,72 @@ void test_word_func(){
   }
 }
 
-// Use stack algorithm and precedence to get final command_stream
+command_stream_t solve_newlines(command_stream_t nlStream){
+  command_stream_t cStream = checked_malloc(sizeof(struct command_stream));
+  initialize_stream(cStream);
+  command_t cmd;
+  bool prev_command_was_operator = false;
+  
+  reset_traverse(nlStream);
+  while(nlStream->m_curr != NULL){
+    cmd = traverse(nlStream);
+    
+    print_stream(nlStream);
+    //Designate 11 as newline (just random convention)
+    if(cmd->type == 11){
+      //if prev command was operator
+      if(prev_command_was_operator){
+	while(traverse(nlStream)->type == 11){
+	  ;//skip the newlines
+	}
+	add_command(cmd, cStream);
+	prev_command_was_operator = false;
+	continue;
+      }
+      if(traverse(nlStream) == NULL){
+	//end of stream
+	return cStream;
+      }
+      
+      //create a new tree
+      if(traverse(nlStream)->type == 11){
+	cmd = form_basic_command(77);
+      	add_command(cmd,cStream);
+	continue;
+      }
+      
+      cmd = traverse(nlStream);
+      if(cmd->type != 11){
+	add_command(form_basic_command(SEQUENCE_COMMAND),cStream);
+	add_command(cmd,cStream);
+	if(is_operator(cmd->type)){
+	  prev_command_was_operator = true;
+	}
+      }
+    }
+    else{
+      if(is_operator(cmd->type)){
+	prev_command_was_operator = true;
+	add_command(cmd,cStream);
+      }
+      else{
+	add_command(cmd,cStream);
+      }
+    }
+  }
+  return cStream;
+    
+    //if newline
+    //	if prev_command_was_operator then ignore
+    //	if at the end just return;
+    //	if next one also a newline create a new tree
+    //	if next is a regular then semicolon it
+    //if not newline
+    //	if operator add operator and set prev command was op to true
+    //	if not operator just add regularly
+}
+
+// Perhaps a way to deal with subshells
 command_stream_t make_advanced_stream(command_stream_t basic_stream){
 
   // Initialize command stream, operator stack and command stack
@@ -1197,7 +1262,7 @@ make_command_stream (int (*get_next_byte) (void *),
     fprintf(stderr, "Error: Null Token List After Buffer Passed in");
     return NULL;
   }
-  
+
   // Check the list of tokens for syntax and ordering
   check_token_list(token_list);
 
