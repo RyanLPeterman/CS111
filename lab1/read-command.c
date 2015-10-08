@@ -560,7 +560,7 @@ void check_token_list(token_list_t token_list) {
     }
     if(curr_ptr->m_prev != 0) {
       prev_token = curr_ptr->m_prev->m_token; 
-    }command_t cmd = checked_malloc(sizeof(struct command));
+    }
 
     switch (curr_token.type) {
       
@@ -575,6 +575,11 @@ void check_token_list(token_list_t token_list) {
           // Semicolons are treated as newlines if not inside a subshell
           if (paren_count == 0) {
             curr_ptr->m_token.type = NEWLINE;
+          }
+          // Cannot be first token to appear
+          if (curr_ptr->m_prev == NULL) {
+            fprintf(stderr, "Error: Line %i: Semicolons cannot be the first token to appear", curr_token.lin_num);
+            exit(1);
           }
         }
         // End of list
@@ -649,8 +654,7 @@ void check_token_list(token_list_t token_list) {
         break;
 
       // decrease scope
-      case RIGHT_PAREN:
-        if (paren_count > 0) 
+      case RIGHT_PAREN: 
           paren_count--;
         break;
 
@@ -661,6 +665,12 @@ void check_token_list(token_list_t token_list) {
     // Increment iterating variables
     prev = curr_ptr;
     curr_ptr = curr_ptr->m_next;    
+  }
+
+  // not equal amount of parenthesis
+  if(paren_count != 0) {
+    fprintf(stderr, "Error: Missing an accompanying right parenthesis");
+    exit(1);
   }
 }
 
@@ -1312,6 +1322,8 @@ make_command_stream (int (*get_next_byte) (void *),
     return NULL;
   }
   
+  check_token_list(token_list);
+
   return make_advanced_stream(solve_newlines(make_basic_stream(token_list)));
 
   // For debugging purposes
@@ -1319,7 +1331,7 @@ make_command_stream (int (*get_next_byte) (void *),
   // test_stack();
 
   // Check the list of tokens for syntax and ordering
-  //check_token_list(token_list);
+  //
 
 
   // Take use linked list of tokens to make a command stream
