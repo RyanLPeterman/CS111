@@ -767,6 +767,10 @@ void check_token_list(token_list_t token_list) {
           fprintf(stderr, "Error: Line %i: IO Redirection must be followed by a word \n", curr_token.lin_num);
           exit(1);
         }
+	if(prev == NULL) {
+	  fprintf(stderr, "Error: Line %i : IO Redirection must be surrounded by words", curr_token.lin_num);
+	  exit(1);
+	}
         // Check to see if there is an existing file
         if(curr_token.type == LEFT_ARROW) {
           if((f_ptr = fopen(next_token.words, "r"))) {
@@ -790,6 +794,48 @@ void check_token_list(token_list_t token_list) {
       case RIGHT_PAREN: 
           paren_count--;
         break;
+
+      case OR:
+        if(next_token.type == PIPE || prev == NULL) {
+	  fprintf(stderr, "Error: Line %i : Or operator must be surrounded by commands", curr_token.lin_num);
+	  exit(1);
+	}
+	if(next_token.type == NEWLINE) {
+	  // Now iterate through next tokens until something other than newline seen
+	  token_list_t temp = curr_ptr;
+	  bool isEOF = true;
+
+	  // loop through list
+	  while(temp->m_next != NULL) {
+      
+	    // if something is not a newline break
+	    if(temp->m_next->m_token.type != NEWLINE) {
+    		isEOF = false;
+    		break;
+	    }
+
+	    temp = temp->m_next;
+	  }
+	  if(isEOF) {
+	    fprintf(stderr, "Error: Line %i : End of file reached after operator", curr_token.lin_num);
+	    exit(1);
+	  }
+	}
+	break;
+
+      case AND:
+	if(prev == NULL) {
+	  fprintf(stderr, "Error: Line %i : And operator must be surrounded by commands",curr_token.lin_num);
+	  exit(1);
+	}
+	break;
+
+      case PIPE:
+	if(prev == NULL) {
+	  fprintf(stderr, "Error: Line %i : Pipe operator must be surrounded by commands", curr_token.lin_num);
+	  exit(1);
+	}
+	break;
 
       default:
         break;
