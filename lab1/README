@@ -14,11 +14,11 @@
 		Status: Done and Verified
 
 	3. Pass through the created linked list of tokens to make sure the ordering is syntactically valid
-		Status: Done and Checking
+		Status: Done and Verified
 
 	4. Now we take the valid list of tokens and create a command stream using an operator stack and a command stack
 	to create the command trees that will be linked up in our command stream
-		Status: Sean Implementing
+		Status: Done and Verified
 
 ## Function Explanations:
 
@@ -32,7 +32,11 @@
 
 	5. is_valid - given a character, this function validates that the character is of the list of allowed characters based on the spec
 
-	6. token_list_to_command_tree - TODO
+	6. make_basic_stream - given a valid token list, this function converts the token list into a command stream with no depth
+
+	7. solve_newlines - given a simple command stream, this function converts newlines into its corresponding cases
+
+	8. make_advanced_stream - given a valid basic stream, this function uses a command stack and an operator stack to populate the command stream with many command trees
 
 ## Data Structures:
 

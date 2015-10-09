@@ -1,5 +1,12 @@
 #include <stdbool.h> // for boolean type
 
+#define NEW_TREE_COMMAND 77
+#define NEWLINE_COMMAND 11
+#define RIGHT_PAREN_COMMAND 10
+#define LEFT_PAREN_COMMAND 9
+#define RIGHT_ARROW_COMMAND 8
+#define LEFT_ARROW_COMMAND 7
+
 /////////////////////////////////////////////////
 ///////////////  Token Definition  //////////////
 /////////////////////////////////////////////////
@@ -28,6 +35,9 @@ void add_token(token* to_add, token_list_t* head);
 
 // Free memory allocated to linked list
 void free_token_list(token_list_t head);
+
+// For debugging purposes
+void print_token_list(token_list_t token_list);
 
 /////////////////////////////////////////////////
 //////////  Command Stream Definition  //////////
@@ -107,22 +117,23 @@ token_list_t convert_to_tokens(char* buffer);
 // Checks passed in token_list to verify that token ordering is syntactically valid
 void check_token_list(token_list_t token_list);
 
-// For debugging purposes
-void print_token_list(token_list_t token_list);
-
 // Returns true if the type is an operator
 bool is_operator(int type);
 
 // Returns the precendence of a passed in operator
 int get_precedence(int type);
 
+// Initializes an empty command
 command_t form_basic_command(int type);
 
+// Takes token list and creates a command stream with no depth
 command_stream_t make_basic_stream(token_list_t tList);
 
-command_stream_t make_advanced_stream(command_stream_t basic_stream);
+// Handles different newline cases
+command_stream_t solve_newlines(command_stream_t nlStream); 
 
-void test_word_func();
+// Takes a simple command stream and turns it into a forest of command trees
+command_stream_t make_advanced_stream(command_stream_t basic_stream);
 
 /////////////////////////////////////////////////
 ////////////////  Given Functions  //////////////
