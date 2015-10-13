@@ -73,9 +73,10 @@ run_child(void)
 		   pid, input_counter);
 
 	// if the pid number is even #, kill the thread one number above it
-	//if(pid%2 == 0) {
-	//	sys_kill(pid + 1);
-	//}
+	// prevent out of bounds pid kill
+	if(pid%2 == 0 && pid != NPROCS) {
+		sys_kill(pid + 1);
+	}
 
 	sys_exit(input_counter);
 }

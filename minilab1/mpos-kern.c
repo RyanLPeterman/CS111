@@ -171,20 +171,17 @@ interrupt(registers_t *reg)
 		// for this register out of 'current->p_registers'.
 		
 		// reap process if there is a waiting process
-		// this causes all the lines to be red
-		if (current->waiting_process !=NULL)
+		if (current->waiting_process !=NULL) {
+			// reap child
 			current->p_state = P_EMPTY; 
-		else
-			current->p_state = P_ZOMBIE;  
-		current->p_exit_status = current->p_registers.reg_eax;
-
-		// if there is a waiting parent process
-		if (current->waiting_process != NULL) {
+			current->p_exit_status = current->p_registers.reg_eax;
 			// set the parent process to runnable again
 			current->waiting_process->p_state = P_RUNNABLE;
-			// pass along exit value into eax register
-			current->waiting_process->p_registers.reg_eax = current->p_exit_status;
-		}	
+			
+		}
+		else
+			current->p_state = P_ZOMBIE;  
+
 		schedule();
 
 	case INT_SYS_WAIT: {
@@ -202,21 +199,18 @@ interrupt(registers_t *reg)
 		if (p <= 0 || p >= NPROCS || p == current->p_pid
 		    || proc_array[p].p_state == P_EMPTY)
 			current->p_registers.reg_eax = -1;
+		// if child is a zombie/ has exited
 		else if (proc_array[p].p_state == P_ZOMBIE) {
-			// TODO ask tuan
-			// There is a waiting process therefore reap process
-			//if (proc_array[p].waiting_process != NULL) {
-			//	proc_array[p].p_state = P_EMPTY;
-			//}
-			//else
-				current->p_registers.reg_eax = proc_array[p].p_exit_status;
+			// reap child process
+			proc_array[p].p_state = P_EMPTY;
+			current->p_registers.reg_eax = proc_array[p].p_exit_status;
 		}
 		else {
 
 			// add parent process that called sys_wait child process waiting queue
 			proc_array[p].waiting_process = current;
 
-			// sleeps process since schedule wont run it
+			// sleeps process so schedule wont run it
 			current->p_state = P_BLOCKED;
 		}
 		schedule();
@@ -225,11 +219,16 @@ interrupt(registers_t *reg)
 		// creates a new thread that shares the same space as 
 		// the parent process. thread starts execution in start_function
 		// saves child thread return value in parent eax
-		current->p_registers.reg_eax = do_newthread(current, current->p_registers.reg_ebx);
+		current->p_registers.reg_eax = do_newthread(current, current->p_registers.reg_eax);
 		run(current);
 
-	//case INT_SYS_KILL: 
-		// TODO
+	case INT_SYS_KILL: 
+		// kills current thread whose pid value was passed into
+		// sys_kill in the main function
+		current = &(proc_array[current->p_registers.reg_eax]);
+		current->p_state = P_EMPTY;
+		current->p_exit_status = current->p_registers.reg_eax;
+		schedule();
 
 	default:
 		while (1)

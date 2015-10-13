@@ -5,22 +5,12 @@
 
 ### Project List
 	
-|  Project  	|      Status      	| Group (y/n)  	|
-|:---------:	|:----------------:	|:------------:	|
-|   Lab 1A  	|    In Progress   	|       y      	|
-| Minilab 1 	|    In Progress   	|       n      	|
-|   Lab 1B  	| Not Assigned Yet 	|       y      	|
-| Minilab 2 	| Not Assigned Yet 	|       n      	|
-|   Lab 1C  	| Not Assigned Yet 	|       y      	|
-|   Lab 2   	| Not Assigned Yet 	|       y      	|
-|   Lab 3   	| Not Assigned Yet 	|       y      	|
-
-### Group Members: 
-
-	Name: Ryan Peterman
-	UID: 704269982
-
-	Name: Sean Wang
-	UID: 604151638
-
-
+|  Project  	|      Status      	|  	
+|:---------:	|:----------------:	|
+|   Lab 1A  	|    In Progress   	|             	
+| Minilab 1 	|    In Progress   	|             	
+|   Lab 1B  	| Not Assigned Yet 	|             	
+| Minilab 2 	| Not Assigned Yet 	|             	
+|   Lab 1C  	| Not Assigned Yet 	|             	
+|   Lab 2   	| Not Assigned Yet 	|             	
+|   Lab 3   	| Not Assigned Yet 	|             	
