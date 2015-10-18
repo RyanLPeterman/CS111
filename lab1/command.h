@@ -7,6 +7,8 @@
 #define RIGHT_ARROW_COMMAND 8
 #define LEFT_ARROW_COMMAND 7
 
+
+
 /////////////////////////////////////////////////
 ///////////////  Token Definition  //////////////
 /////////////////////////////////////////////////
@@ -75,31 +77,41 @@ typedef struct st_node st_node;
 typedef struct st_node* st_node_t;
 
 typedef struct stack stack;
-typedef struct stack* stack_t;
 
 // Constructor
-stack_t init_stack();
+stack* init_stack();
 
 // Add command onto stack
-void push(command_t to_add, stack_t stack);
+void push(command_t to_add, stack* stack);
 
 // Remove and return top command of stack
-command_t pop(stack_t stack);
+command_t pop(stack* stack);
 
 // Return top command on stack
-command_t peek(stack_t stack);
+command_t peek(stack* stack);
 
 // Check if stack is empty
-bool isEmpty(stack_t stack);
+bool isEmpty(stack* stack);
 
 // Free all memory allocated to stack
-void free_stack(stack_t stack);
+void free_stack(stack* stack);
 
 // Print out contents of stack
-void print_stack(stack_t stack);
+void print_stack(stack* stack);
 
 // Testing Data Structure
 void test_stack();
+
+/////////////////////////////////////////////////
+//////////////  Execution Functions  ////////////
+/////////////////////////////////////////////////
+
+void execute_simple(command_t c);
+void execute_subshell(command_t c);
+void execute_and(command_t c);
+void execute_or(command_t c);
+void execute_sequence(command_t c);
+void execute_pipe(command_t c);
 
 /////////////////////////////////////////////////
 /////////////  Additional Functions  ////////////

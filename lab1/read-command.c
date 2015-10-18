@@ -220,8 +220,8 @@ struct stack {
 };
 
 // Initial stack constructor
-stack_t init_stack() {
-  stack_t stack = checked_malloc(sizeof(stack));
+stack* init_stack() {
+  stack* stack = checked_malloc(sizeof(stack));
   stack->m_size = 0;
   stack->m_top = NULL;
 
@@ -229,7 +229,7 @@ stack_t init_stack() {
 }
 
 // Pushes command onto given stack
-void push(command_t to_add, stack_t stack){
+void push(command_t to_add, stack* stack){
 
   st_node_t top_node;
 
@@ -269,7 +269,7 @@ void push(command_t to_add, stack_t stack){
 }
 
 // Removes a command from the stack and returns it
-command_t pop(stack_t stack) {
+command_t pop(stack* stack) {
 
   // Grab command from top node
   st_node_t top_node = stack->m_top;
@@ -285,12 +285,12 @@ command_t pop(stack_t stack) {
 }
 
 // Accessor Method to look at top of stack
-command_t peek(stack_t stack) {
+command_t peek(stack* stack) {
   return stack->m_top->m_data;
 }
 
 // Returns true if the stack is empty
-bool isEmpty(stack_t stack) {
+bool isEmpty(stack* stack) {
   if(stack->m_top == NULL)
     return true;
   else
@@ -298,7 +298,7 @@ bool isEmpty(stack_t stack) {
 }
 
 // For debugging purposes
-void print_stack(stack_t stack) {
+void print_stack(stack* stack) {
 
   int MAX_SIZE = LEFT_PAREN_COMMAND;
   char* command_name = checked_malloc(sizeof(char) * MAX_SIZE);
@@ -341,7 +341,7 @@ void print_stack(stack_t stack) {
 // Test function 
 void test_stack() {
 
-  stack_t stack = init_stack();
+  stack* stack = init_stack();
   int i = 0;
   for(;i < 3; i++)
   {
@@ -360,7 +360,7 @@ void test_stack() {
 }
 
 // Frees allocated memory
-void free_stack(stack_t stack) {
+void free_stack(stack* stack) {
 
   int i = 0;
   for(; i < stack->m_size; i++) {
@@ -1086,8 +1086,8 @@ command_stream_t make_advanced_stream(command_stream_t basic_stream) {
   command_stream_t cStream = checked_malloc(sizeof(struct command_stream));
   initialize_stream(cStream);
   command_t cmd;
-  stack_t com_stack = init_stack();
-  stack_t op_stack = init_stack();
+  stack* com_stack = init_stack();
+  stack* op_stack = init_stack();
   
   bool finish_up = false;
   

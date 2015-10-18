@@ -7,9 +7,9 @@
 	
 |  Project  	|      Status      	|  	
 |:---------:	|:----------------:	|
-|   Lab 1A  	|    In Progress   	|             	
-| Minilab 1 	|    In Progress   	|             	
-|   Lab 1B  	| Not Assigned Yet 	|             	
+|   Lab 1A  	|    Finished   	|             	
+| Minilab 1 	|    Finished   	|             	
+|   Lab 1B  	| 	In Progress 	|             	
 | Minilab 2 	| Not Assigned Yet 	|             	
 |   Lab 1C  	| Not Assigned Yet 	|             	
 |   Lab 2   	| Not Assigned Yet 	|             	
