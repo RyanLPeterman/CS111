@@ -50,6 +50,56 @@ bool is_operator(int type){
   return (type == PIPE_COMMAND || type == AND_COMMAND || type == OR_COMMAND || type == SEQUENCE_COMMAND);
 }
 
+// returns a string given an enum of the command_type
+char* command_type_to_string(int type) {
+
+  // buffer to hold name of token
+  int max_size_string = 10;
+  char* token_type_name = checked_malloc(sizeof(char) * max_size_string);
+  int count = 0;
+
+  switch(type) {
+    case NEW_TREE_COMMAND:
+      strcpy(token_type_name, "New Tree");
+      break;
+    case NEWLINE_COMMAND:
+      strcpy(token_type_name, "Newline");
+      break;
+    case RIGHT_PAREN_COMMAND:
+      strcpy(token_type_name, ") Cmd");
+      break;
+    case LEFT_PAREN_COMMAND:
+      strcpy(token_type_name, "( Cmd");
+      break;
+    case RIGHT_ARROW_COMMAND:
+      strcpy(token_type_name, "> Cmd");
+      break;
+    case LEFT_ARROW_COMMAND:
+      strcpy(token_type_name, "< Cmd");
+      break;
+    case AND_COMMAND:
+      strcpy(token_type_name, "&& Cmd");
+      break;
+    case SEQUENCE_COMMAND:
+      strcpy(token_type_name, "; Cmd");
+      break;
+    case OR_COMMAND:
+      strcpy(token_type_name, "|| Cmd");
+      break;
+    case PIPE_COMMAND:
+      strcpy(token_type_name, "| Cmd");
+      break;
+    case SIMPLE_COMMAND:
+      strcpy(token_type_name, "Simple");
+      break;
+    case SUBSHELL_COMMAND:
+      strcpy(token_type_name, "Subshell");
+      break;
+  }
+
+  return token_type_name;
+}
+
 //////////////////////////////////////////////////////////////
 ///////////////////  Token Implementation  ///////////////////
 //////////////////////////////////////////////////////////////
@@ -270,6 +320,10 @@ void push(command_t to_add, stack* stack){
 
 // Removes a command from the stack and returns it
 command_t pop(stack* stack) {
+	// empty stack error case
+	if(stack->m_top == NULL){
+		return NULL;
+	}
 
   // Grab command from top node
   st_node_t top_node = stack->m_top;
@@ -463,10 +517,12 @@ void  print_stream(command_stream_t cStream){
   else{
     node_t iter = cStream->m_head;
     while(iter){
-      fprintf(stderr,"Type of command is: %d\n",iter->m_dataptr->type);
+      char* temp_str = command_type_to_string(iter->m_dataptr->type);
+      fprintf(stdout,"Type of command is: %s\n",temp_str);
+      free(temp_str);
       iter = iter->m_next;
     }
-    fprintf(stderr,"SEPARATE\n");
+    fprintf(stdout, "\n");
   }
 }
 
@@ -505,8 +561,9 @@ char* read_file_into_buffer(int (*get_next_byte) (void *), void *get_next_byte_a
     if(next_byte == '#') {
       while ((next_byte = get_next_byte(get_next_byte_argument)) != '\n') 
       {
-        // test
-        // printf("%c", next_byte);
+        // for case when file ends with comment no newline
+        if(next_byte == EOF)
+          break;
       }
 
       // get next byte disregard '\n'
@@ -1035,7 +1092,11 @@ command_stream_t solve_newlines(command_stream_t nlStream) {
     //	 if operator add operator and set prev command was op to true
     //	 if not operator just add regularly
     if(cmd->type == NEWLINE_COMMAND){ 
+      
+      // prev command was operator
       if(prev_command_was_operator){
+
+        // loop to remove all newlines
 	      for(;;){
       	  cmd = traverse(nlStream);
       	  if(cmd == NULL){
@@ -1048,17 +1109,32 @@ command_stream_t solve_newlines(command_stream_t nlStream) {
       	add_command(cmd,cStream);
       	prev_command_was_operator = false;
       }
+      // prev command was not an operator
       else {
-
+        // traverse to the next item after NEWLINE
       	cmd = traverse(nlStream);
 
       	if(cmd == NULL) {
       	  return cStream;
       	} 
       	if(cmd->type == NEWLINE_COMMAND) {
+
+          // eat all newlines after the second one
+          while(true) {
+            cmd = traverse(nlStream);
+            if(cmd == NULL)
+              return cStream;
+            if(cmd->type != NEWLINE_COMMAND)
+              break;
+          }
       	  add_command(form_basic_command(NEW_TREE_COMMAND) ,cStream); 
+          // add the command that was not a newline
+          add_command(cmd, cStream);
       	}
       	else {
+          // add semicolon in place of newline
+          add_command(form_basic_command(SEQUENCE_COMMAND), cStream);
+          // add command after newline to stream
       	  add_command(cmd,cStream);
       	  if(is_operator(cmd->type))
       	    prev_command_was_operator = true;
@@ -1213,8 +1289,14 @@ make_command_stream (int (*get_next_byte) (void *),
   // Check the list of tokens for syntax and ordering
   check_token_list(token_list);
 
+  command_stream_t basic_stream = make_basic_stream(token_list);
+
+  basic_stream = solve_newlines(basic_stream);
+
+  command_stream_t advanced_stream = make_advanced_stream(basic_stream);
+
   // Take use linked list of tokens to make a command stream
-  return make_advanced_stream(solve_newlines(make_basic_stream(token_list)));
+  return advanced_stream;
 }
 
 command_t

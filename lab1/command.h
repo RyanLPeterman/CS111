@@ -106,16 +106,18 @@ void test_stack();
 //////////////  Execution Functions  ////////////
 /////////////////////////////////////////////////
 
-void execute_simple(command_t c);
-void execute_subshell(command_t c);
-void execute_and(command_t c);
-void execute_or(command_t c);
-void execute_sequence(command_t c);
-void execute_pipe(command_t c);
+void execute_simple(command_t c, bool is_time_travel);
+void execute_subshell(command_t c, bool is_time_travel);
+void execute_and(command_t c, bool is_time_travel);
+void execute_or(command_t c, bool is_time_travel);
+void execute_sequence(command_t c, bool is_time_travel);
+void execute_pipe(command_t c, bool is_time_travel);
 
 /////////////////////////////////////////////////
 /////////////  Additional Functions  ////////////
 /////////////////////////////////////////////////
+
+char* command_type_to_string(int type);
 
 // Checks if passed in character matches characters allowed by the spec
 bool is_valid_char(char character);

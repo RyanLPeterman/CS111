@@ -1,1 +1,1 @@
-ls
+(cat) < main.c
