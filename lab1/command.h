@@ -1,13 +1,13 @@
 #include <stdbool.h> // for boolean type
 
+// types used to recognize what type of command 
+// for those not listed in commandinternals
 #define NEW_TREE_COMMAND 77
 #define NEWLINE_COMMAND 11
 #define RIGHT_PAREN_COMMAND 10
 #define LEFT_PAREN_COMMAND 9
 #define RIGHT_ARROW_COMMAND 8
 #define LEFT_ARROW_COMMAND 7
-
-
 
 /////////////////////////////////////////////////
 ///////////////  Token Definition  //////////////
@@ -106,6 +106,7 @@ void test_stack();
 //////////////  Execution Functions  ////////////
 /////////////////////////////////////////////////
 
+// each function executes a different type of command
 void execute_simple(command_t c, bool is_time_travel);
 void execute_subshell(command_t c, bool is_time_travel);
 void execute_and(command_t c, bool is_time_travel);
@@ -117,7 +118,9 @@ void execute_pipe(command_t c, bool is_time_travel);
 /////////////  Additional Functions  ////////////
 /////////////////////////////////////////////////
 
+// returns string that lists the type for easier debugging
 char* command_type_to_string(int type);
+char* token_type_to_string(int type);
 
 // Checks if passed in character matches characters allowed by the spec
 bool is_valid_char(char character);

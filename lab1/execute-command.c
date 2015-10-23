@@ -18,6 +18,45 @@ command_status (command_t c)
   return c->status;
 }
 
+// sets redirection for subshells and simple commands
+void set_redirection(command_t c) {
+
+	// set stdin
+	if(c->input != NULL) {
+		// open input file for reading and writing
+		int input_fd = open(c->input, O_RDWR);
+
+		// open error case
+		if (input_fd < 0)
+			error(1, 0, "Error: Unable to open input file: %s \n", c->input);
+		// sets input_fd to stdin
+		if (dup2(input_fd, 0) < 0)
+			error(1, 0, "Error: Failed to copy input file descriptor \n");
+		// closes file
+		if (close(input_fd) < 0)
+			error(1, 0, "Error: Failed to close input file");
+	}
+
+	// set stdout
+	if(c->output != NULL) {
+
+		// open output file to be created/written to with necessary flags
+		int output_fd = open(c->output, O_CREAT | O_WRONLY | O_TRUNC,
+		S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH);
+
+		// open error case
+		if (output_fd < 0)
+			error(1, 0, "Error: Unable to open output file: %s \n", c->output);
+		// sets output_fd to stdout
+		if (dup2(output_fd, 1) < 0)
+			error(1, 0, "Error: Failed to output copy file descriptor \n");
+		// closes file
+		if (close(output_fd) < 0)
+			error(1, 0, "Error: Failed to close output file");
+	}
+	return;
+}
+
 void
 execute_simple (command_t c, bool is_time_travel){
 
@@ -37,38 +76,8 @@ execute_simple (command_t c, bool is_time_travel){
 	// child case
 	else if (pid == 0) {
 
-		// set stdin
-		if(c->input != NULL) {
-			// open input file for reading 
-			int input_fd = open(c->input, O_RDONLY);
-
-			// open error case
-			if (input_fd < 0)
-				error(1, 0, "Error: Unable to read input file: %s \n", c->input);
-			// sets input_fd to stdin
-			if (dup2(input_fd, 0) < 0)
-				error(1, 0, "Error: Failed to copy file descriptor \n");
-			// closes file
-			if (close(input_fd) < 0)
-				error(1, 0, "Error: Failed to close file");
-		}
-
-		// set stdout
-		if(c->output != NULL) {
-
-			// open output file to be created, cleared, wrote to, with RW user permission
-			int output_fd = open(c->output, O_CREAT | O_WRONLY | O_TRUNC | S_IWUSR | S_IRUSR );
-
-			// open error case
-			if (output_fd < 0)
-				error(1, 0, "Error: Unable to read input file: %s \n", c->output);
-			// sets output_fd to stdout
-			if (dup2(output_fd, 1) < 0)
-				error(1, 0, "Error: Failed to copy file descriptor \n");
-			// closes file
-			if (close(output_fd) < 0)
-				error(1, 0, "Error: Failed to close file");
-		}
+		// set input and output for command
+		set_redirection(c);
 
 		// execute simple command program
 		execvp(c->u.word[0], c->u.word);
@@ -83,39 +92,10 @@ execute_simple (command_t c, bool is_time_travel){
 void
 execute_subshell (command_t c, bool is_time_travel){
 	
-	// set stdin
-	if(c->input != NULL) {
-		// open input file for reading 
-		int input_fd = open(c->input, O_RDONLY);
+	// set input and output for command
+	set_redirection(c);
 
-		// open error case
-		if (input_fd < 0)
-			error(1, 0, "Error: Unable to read input file: %s \n", c->input);
-		// sets input_fd to stdin
-		if (dup2(input_fd, 0) < 0)
-			error(1, 0, "Error: Failed to copy file descriptor \n");
-		// closes file
-		if (close(input_fd) < 0)
-			error(1, 0, "Error: Failed to close file");
-	}
-
-	// set stdout
-	if(c->output != NULL) {
-
-		// open output file to be created, cleared, wrote to, with RW user permission
-		int output_fd = open(c->output, O_CREAT | O_WRONLY | O_TRUNC | S_IWUSR | S_IRUSR );
-
-		// open error case
-		if (output_fd < 0)
-			error(1, 0, "Error: Unable to read input file: %s \n", c->output);
-		// sets output_fd to stdout
-		if (dup2(output_fd, 1) < 0)
-			error(1, 0, "Error: Failed to copy file descriptor \n");
-		// closes file
-		if (close(output_fd) < 0)
-			error(1, 0, "Error: Failed to close file");
-	}
-
+	// start executing subshell's commands
 	execute_command(c->u.subshell_command, is_time_travel);
 }
 
@@ -125,6 +105,7 @@ execute_and (command_t c, bool is_time_travel){
 	command_t first_command = c->u.command[0];
 	command_t second_command = c->u.command[1];
 
+	// execute first command
 	execute_command(first_command, is_time_travel);
 
 	// if first command executed correctly then execute second command
@@ -142,6 +123,7 @@ execute_or (command_t c, bool is_time_travel){
 	command_t first_command = c->u.command[0];
 	command_t second_command = c->u.command[1];
 
+	// execute first command
 	execute_command(first_command, is_time_travel);
 
 	// if first command failed then we run second command
@@ -159,6 +141,7 @@ execute_sequence (command_t c, bool is_time_travel){
 	command_t first_command = c->u.command[0];
 	command_t second_command = c->u.command[1];
 
+	// execute both commands in sequence
 	execute_command(first_command, is_time_travel);
 	execute_command(second_command, is_time_travel);
 
@@ -182,11 +165,13 @@ execute_pipe (command_t c, bool is_time_travel){
 	if(pipe(fd_array) < 0) 
 		error(1, 0, "Error: Problem when creating pipe");
 
+	// child inherits open file discriptors
 	pid_child1 = fork();
 
 	// parent case
 	if(pid_child1 > 0) {
 
+		// child inherits open file discriptors
 		pid_child2 = fork();
 
 		// parent's parent
@@ -215,12 +200,17 @@ execute_pipe (command_t c, bool is_time_travel){
 				return;
 			}
 		}
-		// parent's child
+		// second child case
 		else if (pid_child2 == 0) {
+			// close file for reading
 			close(fd_array[0]);
+
+			// copy fd for writing
 			if(dup2(fd_array[1], 1) < 0)
 				error(1, 0, "Error: Failed to copy file descriptor \n");
+
 			execute_command(first_command, is_time_travel);
+
 			// call _exit if execvp fails in execute_command
 			// so that it doesn not interfere with parent process
 			_exit(first_command->status);
@@ -228,12 +218,17 @@ execute_pipe (command_t c, bool is_time_travel){
 		else
 			error(1, 0, "Error: Problem when forking");
 	}
-	// child case
+	// first child case
 	else if (pid_child1 == 0) {
+		// close file for writing
 		close(fd_array[1]);
+
+		// copy fd for reading
 		if(dup2(fd_array[0], 0) < 0)
 			error(1, 0, "Error: Failed to copy file descriptor \n");
+
 		execute_command(second_command, is_time_travel);
+		
 		// call _exit if execvp fails in execute_command
 		// so that it doesn not interfere with parent process
 		_exit(second_command->status);

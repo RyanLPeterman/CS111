@@ -41,7 +41,8 @@ int get_precedence(int type){
     return 2;
   if(type == SEQUENCE_COMMAND)
     return 1;
-  fprintf(stderr, "unknown precedence detected");
+
+  fprintf(stderr, "Error: Precendence not defined for this type");
   return -1;
 }
 
@@ -55,49 +56,95 @@ char* command_type_to_string(int type) {
 
   // buffer to hold name of token
   int max_size_string = 10;
-  char* token_type_name = checked_malloc(sizeof(char) * max_size_string);
-  int count = 0;
+  char* command_type_name = checked_malloc(sizeof(char) * max_size_string);
 
   switch(type) {
     case NEW_TREE_COMMAND:
-      strcpy(token_type_name, "New Tree");
+      strcpy(command_type_name, "New Tree");
       break;
     case NEWLINE_COMMAND:
-      strcpy(token_type_name, "Newline");
+      strcpy(command_type_name, "Newline");
       break;
     case RIGHT_PAREN_COMMAND:
-      strcpy(token_type_name, ") Cmd");
+      strcpy(command_type_name, ") Cmd");
       break;
     case LEFT_PAREN_COMMAND:
-      strcpy(token_type_name, "( Cmd");
+      strcpy(command_type_name, "( Cmd");
       break;
     case RIGHT_ARROW_COMMAND:
-      strcpy(token_type_name, "> Cmd");
+      strcpy(command_type_name, "> Cmd");
       break;
     case LEFT_ARROW_COMMAND:
-      strcpy(token_type_name, "< Cmd");
+      strcpy(command_type_name, "< Cmd");
       break;
     case AND_COMMAND:
-      strcpy(token_type_name, "&& Cmd");
+      strcpy(command_type_name, "&& Cmd");
       break;
     case SEQUENCE_COMMAND:
-      strcpy(token_type_name, "; Cmd");
+      strcpy(command_type_name, "; Cmd");
       break;
     case OR_COMMAND:
-      strcpy(token_type_name, "|| Cmd");
+      strcpy(command_type_name, "|| Cmd");
       break;
     case PIPE_COMMAND:
-      strcpy(token_type_name, "| Cmd");
+      strcpy(command_type_name, "| Cmd");
       break;
     case SIMPLE_COMMAND:
-      strcpy(token_type_name, "Simple");
+      strcpy(command_type_name, "Simple");
       break;
     case SUBSHELL_COMMAND:
-      strcpy(token_type_name, "Subshell");
+      strcpy(command_type_name, "Subshell");
+      break;
+  }
+
+  return command_type_name;
+}
+
+char* token_type_to_string(int type) {
+  // buffer to hold name of token
+  int max_size_string = 10;
+  char* token_type_name = checked_malloc(sizeof(char) * max_size_string);
+
+  switch(type) {
+    case SEMICOLON:
+      strcpy(token_type_name, ";");
+      break;
+    case OR:
+      strcpy(token_type_name, "||");
+      break;
+    case AND:
+      strcpy(token_type_name, "&&");
+      break;
+    case PIPE:
+      strcpy(token_type_name, "|");
+      break;  
+    case LEFT_PAREN:
+      strcpy(token_type_name, "(");
+      break;
+    case RIGHT_PAREN:
+      strcpy(token_type_name, ")");
+      break;
+    case LEFT_ARROW:
+      strcpy(token_type_name, "<");
+      break;
+    case RIGHT_ARROW:
+      strcpy(token_type_name, ">");
+      break;
+    case WORD:
+      strcpy(token_type_name, "Word");
+      break;
+    case NEWLINE:
+      strcpy(token_type_name, "\\n");
+      break;
+    case UNKNOWN:
+      strcpy(token_type_name, "Unknown");
+      break;
+    default:
       break;
   }
 
   return token_type_name;
+
 }
 
 //////////////////////////////////////////////////////////////
@@ -180,50 +227,13 @@ void add_token(token* to_add, token_list_t* head) {
 void print_token_list(token_list_t token_list) {
 
   token_list_t ptr = token_list;
-
-  // buffer to hold name of token
-  int max_size_string = 10;
-  char* token_type_name = checked_malloc(sizeof(char) * max_size_string);
-  int count = 0;
+  int count = 1;
+  char* token_type_name;
 
   while(ptr != NULL) {
-    switch(ptr->m_token.type) {
-      case SEMICOLON:
-        strcpy(token_type_name, ";");
-        break;
-      case OR:
-        strcpy(token_type_name, "||");
-        break;
-      case AND:
-        strcpy(token_type_name, "&&");
-        break;
-      case PIPE:
-        strcpy(token_type_name, "|");
-        break;  
-      case LEFT_PAREN:
-        strcpy(token_type_name, "(");
-        break;
-      case RIGHT_PAREN:
-        strcpy(token_type_name, ")");
-        break;
-      case LEFT_ARROW:
-        strcpy(token_type_name, "<");
-        break;
-      case RIGHT_ARROW:
-        strcpy(token_type_name, ">");
-        break;
-      case WORD:
-        strcpy(token_type_name, "Word");
-        break;
-      case NEWLINE:
-        strcpy(token_type_name, "\\n");
-        break;
-      case UNKNOWN:
-        strcpy(token_type_name, "Unknown");
-        break;
-      default:
-        break;
-    }
+    
+    // given token type returns string
+    token_type_name = token_type_to_string(ptr->m_token.type);
 
     // Print report one per line
     fprintf(stdout, "Type: %s Line Number: %i Words: %s \n", token_type_name, ptr->m_token.lin_num, ptr->m_token.words);
@@ -232,7 +242,6 @@ void print_token_list(token_list_t token_list) {
     count++;
     ptr = ptr->m_next;
   }
-
   fprintf(stdout, "Total number of tokens : %i \n", count);
 
   free (token_type_name);
@@ -354,36 +363,16 @@ bool isEmpty(stack* stack) {
 // For debugging purposes
 void print_stack(stack* stack) {
 
-  int MAX_SIZE = LEFT_PAREN_COMMAND;
-  char* command_name = checked_malloc(sizeof(char) * MAX_SIZE);
-
+  char* command_name;
   int i = 0;
   st_node_t ptr = stack->m_top;
 
   fprintf(stdout, "TOP OF STACK: \n");
   for (;i < stack->m_size; i++) {
+    // store command type as a string for better debugging
+    command_name = command_type_to_string(ptr->m_data->type);
 
-    switch(ptr->m_data->type) {
-      case AND_COMMAND:
-        strcpy(command_name, "AND_COMMAND");
-        break;
-      case SEQUENCE_COMMAND:
-        strcpy(command_name, "SEQUENCE_COMMAND");
-        break;
-      case OR_COMMAND:
-        strcpy(command_name, "OR_COMMAND");
-        break;
-      case PIPE_COMMAND:
-        strcpy(command_name, "PIPE_COMMAND");
-        break;
-      case SIMPLE_COMMAND:
-        strcpy(command_name, "SIMPLE_COMMAND");
-        break;
-      case SUBSHELL_COMMAND:
-        strcpy(command_name, "SUBSHELL_COMMAND");
-        break;
-    }
-
+    // prints output to see stack contents
     fprintf(stdout, "Command #%i -> Type : %s \n", i + 1, command_name);
 
     ptr = ptr->m_prev;
@@ -1289,13 +1278,15 @@ make_command_stream (int (*get_next_byte) (void *),
   // Check the list of tokens for syntax and ordering
   check_token_list(token_list);
 
+  // converts token_list to basic stream
   command_stream_t basic_stream = make_basic_stream(token_list);
 
+  // handles newline cases
   basic_stream = solve_newlines(basic_stream);
 
+  // adds depth to stream
   command_stream_t advanced_stream = make_advanced_stream(basic_stream);
 
-  // Take use linked list of tokens to make a command stream
   return advanced_stream;
 }
 
