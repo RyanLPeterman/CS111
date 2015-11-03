@@ -147,7 +147,9 @@ typedef struct file_list_node {
 } file_list_node;
 
 // returns true if a is dependent on b
-bool is_dependent(const execution_list_node a, const execution_list_node b);
+bool is_dependent(const execution_list_node_t a, const execution_list_node_t b);
+// returns true if there is a file shared amongst the two lists
+bool is_intersection(const file_list_node_t a, const file_list_node_t b);
 // executes graph
 int execute_graph(dependency_graph_t graph);
 // builds dependency graph
@@ -160,7 +162,10 @@ void update_graph(execution_list_node_t was_executed, dependency_graph_t graph);
 void fill_read_write_list(command_t cmd, execution_list_node_t node);
 // adds a node to a file_list
 void add_file_node(char* to_add, file_list_node_t list);
-
+// adds execution node to execution_list
+void add_execution_node(execution_list_node_t to_add, execution_list_node_t list);
+// adds a graph node to an execution list
+void add_graph_node(graph_node_t to_add, execution_list_node_t list);
 /////////////////////////////////////////////////
 /////////////  Additional Functions  ////////////
 /////////////////////////////////////////////////

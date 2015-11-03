@@ -12,6 +12,7 @@
 #include <stdlib.h> 	// for exit
 #include <fcntl.h> 		// for file open constants
 #include <stdbool.h> 	// for bool
+#include <string.h>		// for strcmp
 
 int
 command_status (command_t c)
@@ -391,8 +392,90 @@ void add_file_node(char* to_add, file_list_node_t list) {
 }
 
 // cross references the node's read_lists and write lists 
-bool is_dependent(const execution_list_node a, const execution_list_node b) {
-	// TODO: implement this next
+bool is_dependent(const execution_list_node_t a, const execution_list_node_t b) {
+	// Read after write dependency
+	if(is_intersection(a->write_list, b->read_list))
+		return true;
+	// Write after write dependency
+	if(is_intersection(b->write_list, b->write_list))
+		return true;
+	// Write after read dependency
+	if(is_intersection(a->read_list, b->write_list))
+		return true;
+
+	// return false if no dependency
+	return false;
+}
+
+// returns true if the two linked lists of strings contains the same element
+bool is_intersection(const file_list_node_t a, const file_list_node_t b) {
+
+	file_list_node_t a_ptr = a;
+	file_list_node_t b_ptr = b;
+
+	// for every file in a
+	while(a_ptr) {
+
+		// reinit b 
+		b_ptr = b;
+
+		// check every file in b
+		while(b_ptr) {
+			// if the file names are equal
+			if(strcmp(a_ptr->file_name, b_ptr->file_name) == 0)
+				return true;
+			// increment b_ptr
+			b_ptr = b_ptr->next;
+		}
+		// increment a_ptr
+		a_ptr = a_ptr->next;
+	}
+
+	return false;
+}
+
+// adds a graph node to an execution list
+void add_execution_node(execution_list_node_t to_add, execution_list_node_t list) {
+	
+	if(list == NULL) {
+		list = to_add;
+	}
+	else {
+		execution_list_node_t temp = list;
+
+		// seek temp to the end of list
+		while(temp->next) {
+			temp = temp->next;
+		}
+
+		temp->next = to_add;
+	}
+	return;
+}
+
+// TODO FIX THIS WE NEED DOUBLE POINTERS TO CHANGE THE POINTERS
+void add_graph_node(graph_node_t to_add, execution_list_node_t list) {
+
+	execution_list_node_t add = checked_malloc(sizeof(execution_list_node));
+	add->node = to_add;
+	add->read_list = NULL;
+	add->write_list = NULL;
+	add->next = NULL;
+
+	if(list == NULL) {
+		list = add;
+	}
+	else {
+		execution_list_node_t temp = list;
+
+		// seek temp to the end of list
+		while(temp->next) {
+			temp = temp->next;
+		}
+
+		temp->next = add;
+	}
+	return;
 }
 
 // builds dependency graph
@@ -403,6 +486,8 @@ dependency_graph_t build_dependency_graph(command_stream_t command_stream){
 	graph->dependencies = NULL;
 
 	command_t cmd = NULL;
+	// will contain all commands and add one at a time
+	execution_list_node_t total_list = NULL;
 
 	// loop through every command in command_stream
 	while( (cmd = read_command_stream(command_stream)) ) {
@@ -425,9 +510,42 @@ dependency_graph_t build_dependency_graph(command_stream_t command_stream){
 		fill_read_write_list(cmd, new_exec_node);
 
 		// now set up the dependencies of the graph
-		//TODO
+		int num_dependencies = 0;
+		int capacity = 256;     // max number of dependencies initially
+		new_graph_node->dependencies = checked_malloc(sizeof(graph_node_t) * capacity);
 
+		// while there is a command to check against the new command
+		while (total_list) {
+			// if new node is dependent on current node in total_list
+			if(is_dependent(new_exec_node, total_list)) {
+
+				// check if this line does in fact increment it after
+				new_graph_node->dependencies[num_dependencies++] = total_list->node;
+
+				// more dependencies than capacity can hold
+				if(num_dependencies == capacity) {
+
+					// increase capacity and reallocate memory
+					capacity *= 2;
+					new_graph_node->dependencies = checked_malloc(sizeof(new_graph_node->dependencies, sizeof(graph_node_t) * capacity));
+				}
+			}
+
+			// increment total list pointer
+			total_list = total_list->next;
+		}
+
+		// insert the new node into the total list
+		add_execution_node(new_exec_node, total_list);
+
+		// no dependencies
+		if(num_dependencies == 0)
+			// insert the node into the no_dependencies graph
+			add_graph_node(new_graph_node, graph->no_dependencies);
+		else
+			// insert the node into the dependencies part of the graph
+			add_graph_node(new_graph_node, graph->dependencies);
 	}
 
-	return NULL;
+	return graph;
 }
