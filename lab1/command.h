@@ -1,4 +1,5 @@
 #include <stdbool.h> // for boolean type
+#include <unistd.h>  // for pid_t type
 
 // types used to recognize what type of command 
 // for those not listed in commandinternals
@@ -107,12 +108,58 @@ void test_stack();
 /////////////////////////////////////////////////
 
 // each function executes a different type of command
-void execute_simple(command_t c, bool is_time_travel);
-void execute_subshell(command_t c, bool is_time_travel);
-void execute_and(command_t c, bool is_time_travel);
-void execute_or(command_t c, bool is_time_travel);
-void execute_sequence(command_t c, bool is_time_travel);
-void execute_pipe(command_t c, bool is_time_travel);
+void execute_simple(command_t c);
+void execute_subshell(command_t c);
+void execute_and(command_t c);
+void execute_or(command_t c);
+void execute_sequence(command_t c);
+void execute_pipe(command_t c);
+
+typedef struct graph_node* graph_node_t;
+typedef struct file_list_node* file_list_node_t;
+typedef struct dependency_graph* dependency_graph_t;
+typedef struct execution_list_node* execution_list_node_t;
+
+// Parallel execution data structures
+typedef struct graph_node {
+  command_t cmd; // pointer to the command
+  graph_node_t* dependencies; // array of pointers
+  int num_dependencies;
+  pid_t pid; // if -1 then has not run yet else parent will initialize this
+} graph_node;
+
+typedef struct execution_list_node {
+  graph_node_t node;
+  file_list_node_t read_list;
+  file_list_node_t write_list;
+  execution_list_node_t next;
+} execution_list_node;
+
+typedef struct dependency_graph {
+  execution_list_node_t dependencies;
+  execution_list_node_t no_dependencies;
+} dependency_graph;
+
+// linked list of read files and write files
+typedef struct file_list_node {
+  char* file_name;
+  file_list_node_t next;
+} file_list_node;
+
+// returns true if a is dependent on b
+bool is_dependent(const execution_list_node a, const execution_list_node b);
+// executes graph
+int execute_graph(dependency_graph_t graph);
+// builds dependency graph
+dependency_graph_t build_dependency_graph(command_stream_t command_stream);
+// execute all commands that have no dependencies
+void execute_no_dependencies(execution_list_node_t execution_list);
+// update graph by removing all edges from nodes in dependencies
+void update_graph(execution_list_node_t was_executed, dependency_graph_t graph);
+// given a command and its execution list_node fills out its read/write list
+void fill_read_write_list(command_t cmd, execution_list_node_t node);
+// adds a node to a file_list
+void add_file_node(char* to_add, file_list_node_t list);
 
 /////////////////////////////////////////////////
 /////////////  Additional Functions  ////////////

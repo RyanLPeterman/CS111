@@ -54,18 +54,29 @@ main (int argc, char **argv)
 
   command_t last_command = NULL;
   command_t command;
+
+  // we wish to execute in parallel
+  if(time_travel) {
+    // build dependency graph
+    dependency_graph_t graph = build_dependency_graph(command_stream);
+
+    // execute dependency graph commands in parallel when possible
+    int status = execute_graph(graph);
+    return status;
+  }
+
   while ((command = read_command_stream (command_stream)))
   {
     if (print_tree)
-	{
+	  {
 	    printf ("# %d\n", command_number++);
 	    print_command (command);
-	}
+	  }
     else
-	{
-	   last_command = command;
-	   execute_command (command, time_travel);
-	}
+	  {
+	    last_command = command;
+	    execute_command (command, time_travel);
+	  }
   }
 
   return print_tree || !last_command ? 0 : command_status (last_command);
