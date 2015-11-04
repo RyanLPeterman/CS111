@@ -156,16 +156,17 @@ int execute_graph(dependency_graph_t graph);
 dependency_graph_t build_dependency_graph(command_stream_t command_stream);
 // execute all commands that have no dependencies
 void execute_no_dependencies(execution_list_node_t execution_list);
-// update graph by removing all edges from nodes in dependencies
-void update_graph(execution_list_node_t was_executed, dependency_graph_t graph);
+// execute all commands that have dependencies
+void execute_dependencies(execution_list_node_t execution_list);
 // given a command and its execution list_node fills out its read/write list
 void fill_read_write_list(command_t cmd, execution_list_node_t node);
 // adds a node to a file_list
-void add_file_node(char* to_add, file_list_node_t list);
+void add_file_node(char* to_add, file_list_node_t* list);
 // adds execution node to execution_list
-void add_execution_node(execution_list_node_t to_add, execution_list_node_t list);
+void add_execution_node(execution_list_node_t to_add, execution_list_node_t* list);
 // adds a graph node to an execution list
-void add_graph_node(graph_node_t to_add, execution_list_node_t list);
+void add_graph_node(graph_node_t to_add, execution_list_node_t* list);
+
 /////////////////////////////////////////////////
 /////////////  Additional Functions  ////////////
 /////////////////////////////////////////////////
