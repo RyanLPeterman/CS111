@@ -271,6 +271,7 @@ execute_command (command_t c, int time_travel)
 /////////////////////////////////////////////////////////
 ///////////////  Parallel Execution Code  ///////////////
 /////////////////////////////////////////////////////////
+
 // executes graph
 int execute_graph(dependency_graph_t graph){
 	int status = 0; // for exit status
@@ -292,8 +293,7 @@ int execute_graph(dependency_graph_t graph){
 
 			// update graph by removing edges of executed nodes
 			// changes no_dependencies to new set of nodes to execute
-			update_graph(execute_list, graph);
-
+			update_graph(graph);
 		}
 		// exit when finished
 		_exit(0);
@@ -307,29 +307,95 @@ int execute_graph(dependency_graph_t graph){
 
 // execute all commands that have no dependencies
 void execute_no_dependencies(execution_list_node_t execution_list) {
+	execution_list_node_t execution_ptr = execution_list;
+
+	// loop for every element in the execution list
+	while(execution_ptr != NULL) {
+
+		// for a process for every command
+		pid_t pid = fork();
+
+		// child case
+		if(pid == 0) {
+			// execute command
+			execute_command(execution_ptr->node->cmd, false);
+			_exit(0);
+		}
+		else // parent case set the pid #
+			execution_ptr->node->pid = pid;
+
+		execution_ptr = execution_ptr->next;
+	}
+
 	return;
 }
 
 // update graph by removing all edges from nodes in dependencies
-void update_graph(execution_list_node_t was_executed, dependency_graph_t graph) {
-	// build new no_dependencies execution list
-	// set no_dependencies to NULL when done
+void update_graph(dependency_graph_t graph) {
+
+	execution_list_node_t was_executed = graph->no_dependencies;
+	execution_list_node_t dependent_nodes = graph->dependencies;
+
+	// vector initialization
+	int capacity = 64; // arbitrary
+	int num_executed = 0;
+	graph_node_t* executed_nodes = checked_malloc(sizeof(graph_node_t) * capacity);
+
+	// for every node that was executed save its pointer for fast lookup later
+	for(; was_executed!= NULL; was_executed = was_executed->next) {
+		executed_nodes[num_executed] = was_executed->node;
+		num_executed++;
+
+		// we must expand vector
+		if(capacity == num_executed) {
+			capacity *= 2;
+			executed_nodes = checked_realloc(executed_nodes, sizeof(graph_node_t) * capacity);
+		}
+	}
+
+	// used to index into dependencies array
+	int i, j, k;
+
+	// for every node that has dependencies
+	for(;dependent_nodes!= NULL; dependent_nodes = dependent_nodes->next) {
+		// for every dependency in each node
+		for(i = 0; i < dependent_nodes->node->num_dependencies; i++) {
+			// for every freed dependency
+			for(j = 0; j < num_executed; j++) {
+				// there is a dependency to be freed
+				if(dependent_nodes->node->dependencies[i] == executed_nodes[j]) {
+					// shift everything over by 1 in dependencies array
+					for(k = i; k < (dependent_nodes->node->num_dependencies - 1); k++)
+						dependent_nodes->node->dependencies[k] = dependent_nodes->node->dependencies[k + 1];
+
+					// decrement num_dependencies
+					dependent_nodes->node->num_dependencies--;
+				}
+			}
+		}
+		// clear no dependencies list and update it with new nodes
+		free(graph->no_dependencies);
+		graph->no_dependencies = NULL;
+		// that now have no dependencies
+		if(dependent_nodes->node->num_dependencies == 0) 
+			add_execution_node(dependent_nodes, &(graph->no_dependencies));
+		// not removing execution nodes from dependencies is ok since the loops
+		// will not execute due to num_dependencies == 0
+	}
+
 	return;
 }
 
 // given a command and its execution list_node fills out its read/write list
 void fill_read_write_list(command_t cmd, execution_list_node_t node) {
 
-	file_list_node_t read_list = node->read_list;
-	file_list_node_t write_list = node->write_list;
-
 	switch(cmd->type) {
 		case SIMPLE_COMMAND:
 			// add the input redirects to subshell to read/write list
 			if(cmd->input != NULL)
-				add_file_node(cmd->input, read_list);
+				add_file_node(cmd->input, &(node->read_list));
 			if(cmd->output != NULL)
-				add_file_node(cmd->output, write_list); 
+				add_file_node(cmd->output, &(node->write_list)); 
 
 			char** words = cmd->u.word;
 			// start at word[1] since word[0] is the name of the command
@@ -338,7 +404,7 @@ void fill_read_write_list(command_t cmd, execution_list_node_t node) {
 			{	
 				// if the first char of the string is not a - 
 				if(words[i][0] != '-') {
-					add_file_node(words[i], read_list);
+					add_file_node(words[i], &(node->read_list));
 				}
 			}
 
@@ -346,9 +412,9 @@ void fill_read_write_list(command_t cmd, execution_list_node_t node) {
 		case SUBSHELL_COMMAND:
 			// add the input redirects to subshell to read/write list
 			if(cmd->input != NULL)
-				add_file_node(cmd->input, read_list);
+				add_file_node(cmd->input, &(node->read_list));
 			if(cmd->output != NULL)
-				add_file_node(cmd->output, write_list); 
+				add_file_node(cmd->output, &(node->write_list)); 
 
 			// recursively add subshell's files to read write list
 			fill_read_write_list(cmd->u.subshell_command, node);				
@@ -366,7 +432,7 @@ void fill_read_write_list(command_t cmd, execution_list_node_t node) {
 	return;
 }
 // adds a node to the list
-void add_file_node(char* to_add, file_list_node_t list) {
+void add_file_node(char* to_add, file_list_node_t* list) {
 	
 	// initialize node to be added
 	file_list_node_t add_node = checked_malloc(sizeof(file_list_node));
@@ -374,12 +440,12 @@ void add_file_node(char* to_add, file_list_node_t list) {
 	add_node->next = NULL;
 
 	// empty list
-	if(list == NULL) {
-		list = add_node;
+	if(*list == NULL) {
+		*list = add_node;
 	}
 	else {
 
-		file_list_node_t ptr = list;
+		file_list_node_t ptr = *list;
 		// seek to end of list
 		while(ptr->next != NULL) {
 			ptr = ptr->next;
@@ -435,13 +501,13 @@ bool is_intersection(const file_list_node_t a, const file_list_node_t b) {
 }
 
 // adds a graph node to an execution list
-void add_execution_node(execution_list_node_t to_add, execution_list_node_t list) {
+void add_execution_node(execution_list_node_t to_add, execution_list_node_t* list) {
 	
-	if(list == NULL) {
-		list = to_add;
+	if(*list == NULL) {
+		*list = to_add;
 	}
 	else {
-		execution_list_node_t temp = list;
+		execution_list_node_t temp = *list;
 
 		// seek temp to the end of list
 		while(temp->next) {
@@ -453,8 +519,8 @@ void add_execution_node(execution_list_node_t to_add, execution_list_node_t list
 	return;
 }
 
-// TODO FIX THIS WE NEED DOUBLE POINTERS TO CHANGE THE POINTERS
-void add_graph_node(graph_node_t to_add, execution_list_node_t list) {
+// adds a graph node to an execution list
+void add_graph_node(graph_node_t to_add, execution_list_node_t* list) {
 
 	execution_list_node_t add = checked_malloc(sizeof(execution_list_node));
 	add->node = to_add;
@@ -462,11 +528,11 @@ void add_graph_node(graph_node_t to_add, execution_list_node_t list) {
 	add->write_list = NULL;
 	add->next = NULL;
 
-	if(list == NULL) {
-		list = add;
+	if(*list == NULL) {
+		*list = add;
 	}
 	else {
-		execution_list_node_t temp = list;
+		execution_list_node_t temp = *list;
 
 		// seek temp to the end of list
 		while(temp->next) {
@@ -510,41 +576,43 @@ dependency_graph_t build_dependency_graph(command_stream_t command_stream){
 		fill_read_write_list(cmd, new_exec_node);
 
 		// now set up the dependencies of the graph
+		execution_list_node_t curr_list = total_list;
 		int num_dependencies = 0;
 		int capacity = 256;     // max number of dependencies initially
 		new_graph_node->dependencies = checked_malloc(sizeof(graph_node_t) * capacity);
 
 		// while there is a command to check against the new command
-		while (total_list) {
-			// if new node is dependent on current node in total_list
-			if(is_dependent(new_exec_node, total_list)) {
+		while (curr_list) {
+			// if new node is dependent on current node in curr_list
+			if(is_dependent(new_exec_node, curr_list)) {
 
 				// check if this line does in fact increment it after
-				new_graph_node->dependencies[num_dependencies++] = total_list->node;
+				new_graph_node->dependencies[num_dependencies] = curr_list->node;
+				num_dependencies++;
 
 				// more dependencies than capacity can hold
 				if(num_dependencies == capacity) {
 
 					// increase capacity and reallocate memory
 					capacity *= 2;
-					new_graph_node->dependencies = checked_malloc(sizeof(new_graph_node->dependencies, sizeof(graph_node_t) * capacity));
+					new_graph_node->dependencies = checked_realloc(new_graph_node->dependencies, sizeof(graph_node_t) * capacity);
 				}
 			}
 
 			// increment total list pointer
-			total_list = total_list->next;
+			curr_list = curr_list->next;
 		}
 
 		// insert the new node into the total list
-		add_execution_node(new_exec_node, total_list);
+		add_execution_node(new_exec_node, &total_list);
 
 		// no dependencies
 		if(num_dependencies == 0)
 			// insert the node into the no_dependencies graph
-			add_graph_node(new_graph_node, graph->no_dependencies);
+			add_graph_node(new_graph_node, &(graph->no_dependencies));
 		else
 			// insert the node into the dependencies part of the graph
-			add_graph_node(new_graph_node, graph->dependencies);
+			add_graph_node(new_graph_node, &(graph->dependencies));
 	}
 
 	return graph;
