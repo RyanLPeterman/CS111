@@ -20,6 +20,10 @@ command_status (command_t c)
   return c->status;
 }
 
+///////////////////////////////////////////////////////////////////////////////////
+//////////////////////    Serial Execution Functions    ///////////////////////////
+///////////////////////////////////////////////////////////////////////////////////
+
 // sets redirection for subshells and simple commands
 void set_redirection(command_t c) {
 
@@ -268,13 +272,13 @@ execute_command (command_t c, int time_travel)
   }
 }
 
-/////////////////////////////////////////////////////////
-///////////////  Parallel Execution Code  ///////////////
-/////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////////
+/////////////////////    Parallel Execution Functions    //////////////////////////
+///////////////////////////////////////////////////////////////////////////////////
 
 // executes graph
 int execute_graph(dependency_graph_t graph){
-	int status = 0; // for exit status
+	int status = 0; 	// for exit status
 	pid_t pid = fork(); // for child to execute graph
 
 	// child case
@@ -314,8 +318,11 @@ int execute_graph(dependency_graph_t graph){
 	}
 	return status;
 }
+
 // execute all commands that have no dependencies
 void execute_no_dependencies(execution_list_node_t execution_list) {
+	
+	// init iteration pointer
 	execution_list_node_t execution_ptr = execution_list;
 
 	// loop for every element in the execution list
@@ -330,9 +337,10 @@ void execute_no_dependencies(execution_list_node_t execution_list) {
 			execute_command(execution_ptr->node->cmd, false);
 			_exit(0);
 		}
-		else // parent case set the pid #
+		else // set pid for waitpid later
 			execution_ptr->node->pid = pid;
 
+		// iterate to next command
 		execution_ptr = execution_ptr->next;
 	}
 
@@ -341,8 +349,11 @@ void execute_no_dependencies(execution_list_node_t execution_list) {
 
 // execute all commands that have dependencies
 void execute_dependencies(execution_list_node_t execution_list) {
+	
+	// init iter pointer
 	execution_list_node_t dependency_iter = execution_list;
 
+	// for every element in the execution list
 	while(dependency_iter != NULL) {
 
 		graph_node_t curr = dependency_iter->node;
@@ -354,15 +365,17 @@ void execute_dependencies(execution_list_node_t execution_list) {
 
 			// wait for dependent process to end
 			waitpid((*dependencies)->pid, &status, 0);
-			// increment iterater in dependencies pointer array 
+			// increment iterator in dependencies pointer array 
 			dependencies++;
 		}
+
 		pid_t pid = fork();
+		// child executes command
 		if(pid == 0) {
 			// execute command
 			execute_command(curr->cmd, false);
 			_exit(0);
-		}
+		} // set pid for waitpid later
 		else if (pid > 0)
 			curr->pid = pid;
 
@@ -372,12 +385,16 @@ void execute_dependencies(execution_list_node_t execution_list) {
 	return;
 }
 
+///////////////////////////////////////////////////////////////////////////////////
+//////////////////    Build Dependency Graph Functions    /////////////////////////
+///////////////////////////////////////////////////////////////////////////////////
+
 // given a command and its execution list_node fills out its read/write list
 void fill_read_write_list(command_t cmd, execution_list_node_t node) {
 
 	switch(cmd->type) {
 		case SIMPLE_COMMAND:
-			// add the input redirects to subshell to read/write list
+			// add the redirects to simple command to read/write list
 			if(cmd->input != NULL)
 				add_file_node(cmd->input, &(node->read_list));
 			if(cmd->output != NULL)
@@ -417,31 +434,6 @@ void fill_read_write_list(command_t cmd, execution_list_node_t node) {
 	}
 	return;
 }
-// adds a node to the list
-void add_file_node(char* to_add, file_list_node_t* list) {
-	
-	// initialize node to be added
-	file_list_node_t add_node = checked_malloc(sizeof(file_list_node));
-	add_node->file_name = to_add;
-	add_node->next = NULL;
-
-	// empty list
-	if(*list == NULL) {
-		*list = add_node;
-	}
-	else {
-
-		file_list_node_t ptr = *list;
-		// seek to end of list
-		while(ptr->next != NULL) {
-			ptr = ptr->next;
-		}
-
-		ptr->next = add_node;
-	}
-
-	return;
-}
 
 // cross references the node's read_lists and write lists 
 bool is_dependent(const execution_list_node_t a, const execution_list_node_t b) {
@@ -462,6 +454,7 @@ bool is_dependent(const execution_list_node_t a, const execution_list_node_t b) 
 // returns true if the two linked lists of strings contains the same element
 bool is_intersection(const file_list_node_t a, const file_list_node_t b) {
 
+	// init iteration pointers
 	file_list_node_t a_ptr = a;
 	file_list_node_t b_ptr = b;
 
@@ -473,9 +466,11 @@ bool is_intersection(const file_list_node_t a, const file_list_node_t b) {
 
 		// check every file in b
 		while(b_ptr) {
+
 			// if the file names are equal
 			if(strcmp(a_ptr->file_name, b_ptr->file_name) == 0)
 				return true;
+
 			// increment b_ptr
 			b_ptr = b_ptr->next;
 		}
@@ -486,59 +481,16 @@ bool is_intersection(const file_list_node_t a, const file_list_node_t b) {
 	return false;
 }
 
-// adds a graph node to an execution list
-void add_execution_node(execution_list_node_t to_add, execution_list_node_t* list) {
-	
-	if(*list == NULL) {
-		*list = to_add;
-	}
-	else {
-		execution_list_node_t temp = *list;
-
-		// seek temp to the end of list
-		while(temp->next) {
-			temp = temp->next;
-		}
-
-		temp->next = to_add;
-	}
-	return;
-}
-
-// adds a graph node to an execution list
-void add_graph_node(graph_node_t to_add, execution_list_node_t* list) {
-
-	execution_list_node_t add = checked_malloc(sizeof(execution_list_node));
-	add->node = to_add;
-	add->read_list = NULL;
-	add->write_list = NULL;
-	add->next = NULL;
-
-	if(*list == NULL) {
-		*list = add;
-	}
-	else {
-		execution_list_node_t temp = *list;
-
-		// seek temp to the end of list
-		while(temp->next) {
-			temp = temp->next;
-		}
-
-		temp->next = add;
-	}
-	return;
-}
-
 // builds dependency graph
 dependency_graph_t build_dependency_graph(command_stream_t command_stream){
 	
+	// initialize graph
 	dependency_graph_t graph = checked_malloc(sizeof(dependency_graph));
 	graph->no_dependencies = NULL;
 	graph->dependencies = NULL;
 
 	command_t cmd = NULL;
-	// will contain all commands and add one at a time
+	// will contain all commands and add one at a time to be looped through to check for dependencies
 	execution_list_node_t total_list = NULL;
 
 	// loop through every command in command_stream
@@ -569,10 +521,11 @@ dependency_graph_t build_dependency_graph(command_stream_t command_stream){
 
 		// while there is a command to check against the new command
 		while (curr_list) {
+
 			// if new node is dependent on current node in curr_list
 			if(is_dependent(new_exec_node, curr_list)) {
 
-				// check if this line does in fact increment it after
+				// set dependency and increment counter
 				new_graph_node->dependencies[num_dependencies] = curr_list->node;
 				num_dependencies++;
 
@@ -589,7 +542,7 @@ dependency_graph_t build_dependency_graph(command_stream_t command_stream){
 			curr_list = curr_list->next;
 		}
 
-		// insert the new node into the total list
+		// insert the new node into the total list to be looped through
 		add_execution_node(new_exec_node, &total_list);
 
 		// no dependencies
@@ -602,4 +555,85 @@ dependency_graph_t build_dependency_graph(command_stream_t command_stream){
 	}
 
 	return graph;
+}
+
+
+/////////////////////////////////////////////////////////////////////
+///////////////// Linked List Helper Functions //////////////////////
+/////////////////////////////////////////////////////////////////////
+
+
+// adds a graph node to an execution list
+// lets us populate the list of commands in the context of checking for dependencies
+void add_execution_node(execution_list_node_t to_add, execution_list_node_t* list) {
+	
+	// empty list case
+	if(*list == NULL) {
+		*list = to_add;
+	}
+	else {
+		execution_list_node_t temp = *list;
+
+		// seek temp to the end of list
+		while(temp->next) {
+			temp = temp->next;
+		}
+
+		temp->next = to_add;
+	}
+	return;
+}
+
+// adds a graph node to an execution list
+// lets us populate the graph's execution lists
+void add_graph_node(graph_node_t to_add, execution_list_node_t* list) {
+
+	// initialize node to be added
+	execution_list_node_t add = checked_malloc(sizeof(execution_list_node));
+	add->node = to_add;
+	add->read_list = NULL;
+	add->write_list = NULL;
+	add->next = NULL;
+
+	// empty list
+	if(*list == NULL) {
+		*list = add;
+	}
+	else {
+		execution_list_node_t temp = *list;
+
+		// seek temp to the end of list
+		while(temp->next) {
+			temp = temp->next;
+		}
+
+		temp->next = add;
+	}
+	return;
+}
+
+// adds a node to the list
+void add_file_node(char* to_add, file_list_node_t* list) {
+	
+	// initialize node to be added
+	file_list_node_t add_node = checked_malloc(sizeof(file_list_node));
+	add_node->file_name = to_add;
+	add_node->next = NULL;
+
+	// empty list
+	if(*list == NULL) {
+		*list = add_node;
+	}
+	else {
+
+		file_list_node_t ptr = *list;
+		// seek to end of list
+		while(ptr->next != NULL) {
+			ptr = ptr->next;
+		}
+
+		ptr->next = add_node;
+	}
+
+	return;
 }

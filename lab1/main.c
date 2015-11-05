@@ -61,8 +61,7 @@ main (int argc, char **argv)
     dependency_graph_t graph = build_dependency_graph(command_stream);
 
     // execute dependency graph commands in parallel when possible
-    int status = execute_graph(graph);
-    return status;
+    return execute_graph(graph);
   }
 
   while ((command = read_command_stream (command_stream)))
