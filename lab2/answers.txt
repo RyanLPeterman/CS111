@@ -1,0 +1,22 @@
+# Fill in your name, student ID, and email address in this file.
+
+# If you are working in a team, remove the # signs from the three lines for
+# partner 2 below and fill them in as well. Please submit the lab to CourseWeb
+# only once (from only one partner). This file will be automatically parsed in
+# order to give both team members credit for the lab.
+
+# If you have any other information you'd like us to know, please add it at
+# the end of the file.
+
+# Partner 1
+Name: Your Name Here
+Student ID: Your ID Here
+Email: Your Email Here
+
+# Partner 2
+#Name: Partner's Name Here
+#Student ID: Partner's ID Here
+#Email: Partner's Email Here
+
+
+# Add any other information you'd like us to have below this line.
