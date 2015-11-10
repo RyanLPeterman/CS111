@@ -9,14 +9,9 @@
 # the end of the file.
 
 # Partner 1
-Name: Your Name Here
-Student ID: Your ID Here
-Email: Your Email Here
-
-# Partner 2
-#Name: Partner's Name Here
-#Student ID: Partner's ID Here
-#Email: Partner's Email Here
-
+Name: Ryan Peterman
+Student ID: 704269982
+Email: RyanLPeterman@gmail.com
 
 # Add any other information you'd like us to have below this line.
+Passes all 17 test cases given.
