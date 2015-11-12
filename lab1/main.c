@@ -4,6 +4,7 @@
 #include <error.h>
 #include <getopt.h>
 #include <stdio.h>
+#include <stdlib.h> // for atoi
 
 #include "command.h"
 
@@ -13,7 +14,7 @@ static char const *script_name;
 static void
 usage (void)
 {
-  error (1, 0, "usage: %s [-pt] SCRIPT-FILE", program_name);
+  error (1, 0, "usage: %s [-p] [-tn#] SCRIPT-FILE", program_name);
 }
 
 static int
@@ -29,13 +30,20 @@ main (int argc, char **argv)
   int command_number = 1;
   int print_tree = 0;
   int time_travel = 0;
+  // will hold max num subprocesses
+  int max_sub_proc = 0;
   program_name = argv[0];
 
   for (;;)
-    switch (getopt (argc, argv, "pt"))
+    switch (getopt (argc, argv, "ptn:"))
       {
       case 'p': print_tree = 1; break;
       case 't': time_travel = 1; break;
+      case 'n': 
+        // error checking
+        if((max_sub_proc = atoi(optarg)) <= 0)
+          error(1, errno, "Number after n must be a valid int greater than 0");
+        break;
       default: usage (); break;
       case -1: goto options_exhausted;
       }
@@ -61,7 +69,8 @@ main (int argc, char **argv)
     dependency_graph_t graph = build_dependency_graph(command_stream);
 
     // execute dependency graph commands in parallel when possible
-    return execute_graph(graph);
+    // additionally: passes in the max number of sub processes that can run
+    return execute_graph(graph, max_sub_proc);
   }
 
   while ((command = read_command_stream (command_stream)))

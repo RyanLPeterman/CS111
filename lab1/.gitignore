@@ -1,2 +1,4 @@
 read-command.c~
 .gitignore~
+.*
+!/.gitignore

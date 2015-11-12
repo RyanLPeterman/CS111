@@ -1,7 +1,8 @@
 # CS 111 Lab 1 Makefile
 
 CC = gcc
-CFLAGS = -g -Wall -Wextra -Wno-unused -Werror
+# to use semaphores added pthread
+CFLAGS = -pthread -g -Wall -Wextra -Wno-unused -Werror
 LAB = 1
 DISTDIR = lab1-$(USER)
 

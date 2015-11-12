@@ -14,6 +14,10 @@
 #include <stdbool.h> 	// for bool
 #include <string.h>		// for strcmp
 
+#include <semaphore.h> 	// for locking for lab 1c design
+#include <sys/stat.h>	// for mode bits
+#include <limits.h> 	// for INT_MAX
+
 int
 command_status (command_t c)
 {
@@ -276,24 +280,38 @@ execute_command (command_t c, int time_travel)
 /////////////////////    Parallel Execution Functions    //////////////////////////
 ///////////////////////////////////////////////////////////////////////////////////
 
+// global variable that controls access 
+int available_subprocs;
+
 // executes graph
-int execute_graph(dependency_graph_t graph){
+int execute_graph(dependency_graph_t graph, int max_sub_proc){
 	int status = 0; 	// for exit status
 	pid_t pid = fork(); // for child to execute graph
+
+	// no proc limit was passed in
+	if(max_sub_proc == 0) {
+		// set it to a large value so lock doesn't limit parallelism
+		max_sub_proc = INT_MAX;
+	}
+
+	// set the available number of sub procs global
+	available_subprocs = max_sub_proc;
 
 	// child case
 	if(pid == 0) {
 
 		// execute not dependent list and dependent list of commands
-		execute_no_dependencies(graph->no_dependencies);
-		execute_dependencies(graph->dependencies);
+		execute_no_dependencies(graph->no_dependencies, max_sub_proc);
+		execute_dependencies(graph->dependencies, max_sub_proc);
 
 		// first we wait for not dependent processes to all finish in parallel
 		execution_list_node_t waiting_to_finish = graph->no_dependencies;
 
 		while(waiting_to_finish != NULL) {
+
 			// wait for any process to finish
 			waitpid(-1, &status, 0);
+
 			// increment until we get to end of list
 			waiting_to_finish = waiting_to_finish->next;
 		}
@@ -313,42 +331,72 @@ int execute_graph(dependency_graph_t graph){
 		_exit(0);
 	}
 	// parent waits for child to finish
-	else if(pid > 0) {
+	else if(pid > 0) 
 		waitpid(pid, &status, 0);
-	}
+	
+
 	return status;
 }
 
 // execute all commands that have no dependencies
-void execute_no_dependencies(execution_list_node_t execution_list) {
+void execute_no_dependencies(execution_list_node_t execution_list, int max_sub_proc) {
 	
 	// init iteration pointer
 	execution_list_node_t execution_ptr = execution_list;
 
+	// to hold exit status
+	int status = 0;
+
 	// loop for every element in the execution list
 	while(execution_ptr != NULL) {
-
-		// for a process for every command
-		pid_t pid = fork();
-
-		// child case
-		if(pid == 0) {
-			// execute command
-			execute_command(execution_ptr->node->cmd, false);
-			_exit(0);
+		
+		// we don't have enough available sub proc to execute this tree
+		if(execution_ptr->node->num_procs_needed > max_sub_proc) {
+			fprintf(stderr, "Not enough subprocesses available to execute this tree\n");
+			// terminate everything completely
+			kill(0, SIGKILL);
+			exit(1);
 		}
-		else // set pid for waitpid later
-			execution_ptr->node->pid = pid;
 
-		// iterate to next command
-		execution_ptr = execution_ptr->next;
+		// if we have enough subprocs available
+		if(available_subprocs >= execution_ptr->node->num_procs_needed) {
+			available_subprocs-=execution_ptr->node->num_procs_needed;
+
+			// for a process for every command tree
+			pid_t pid = fork();
+
+			if(pid > 0) {
+				// set pid for waitpid later
+				execution_ptr->node->pid = pid;
+			}
+			// child case
+			else { 
+				// execute command
+				execute_command(execution_ptr->node->cmd, false);
+
+				// communicate the num procs to release to parent
+				_exit(execution_ptr->node->num_procs_needed);
+			}
+
+			// iterate to next command
+			execution_ptr = execution_ptr->next;
+		}
+
+		// try to grab the status of any child that finished executing
+		waitpid(-1, &status, WNOHANG);
+
+		// use childs exit status to release subprocs
+		// no race condition since only the parent process is running this line of code and waiting at a time
+		if(WIFEXITED(status)) {
+			available_subprocs+= WEXITSTATUS(status);
+		}
 	}
 
 	return;
 }
 
 // execute all commands that have dependencies
-void execute_dependencies(execution_list_node_t execution_list) {
+void execute_dependencies(execution_list_node_t execution_list, int max_sub_proc) {
 	
 	// init iter pointer
 	execution_list_node_t dependency_iter = execution_list;
@@ -360,7 +408,15 @@ void execute_dependencies(execution_list_node_t execution_list) {
 		graph_node_t* dependencies = curr->dependencies;
 		int status;
 
-		// while there are dependencies left
+		// we don't have enough available sub proc to execute this tree
+		if(curr->num_procs_needed > max_sub_proc) {
+			fprintf(stderr, "Not enough subprocesses available to execute this tree\n");
+			// terminate everything completely
+			kill(0, SIGKILL);
+			exit(1);
+		}
+
+		// wait for all dependencies to finish executing
 		while(*dependencies != NULL) {
 
 			// wait for dependent process to end
@@ -369,18 +425,33 @@ void execute_dependencies(execution_list_node_t execution_list) {
 			dependencies++;
 		}
 
-		pid_t pid = fork();
-		// child executes command
-		if(pid == 0) {
-			// execute command
-			execute_command(curr->cmd, false);
-			_exit(0);
-		} // set pid for waitpid later
-		else if (pid > 0)
-			curr->pid = pid;
+		// if we have enough subprocs available
+		if(available_subprocs >= curr->num_procs_needed) {
+			available_subprocs -= curr->num_procs_needed;
 
-		// iterate to next ptr in dependent commands list
-		dependency_iter = dependency_iter->next;
+			pid_t pid = fork();
+			
+			// child executes command
+			if(pid == 0) {
+				// execute command
+				execute_command(curr->cmd, false);
+				_exit(0);
+			} // set pid for waitpid later
+			else if (pid > 0)
+				curr->pid = pid;
+
+			// iterate to next ptr in dependent commands list
+			dependency_iter = dependency_iter->next;
+		}
+
+		// try to grab the status of any child that finished executing
+		waitpid(-1, &status, WNOHANG);
+
+		// use childs exit status to release subprocs
+		// no race condition since only the parent process is running this line of code and waiting at a time
+		if(WIFEXITED(status)) {
+			available_subprocs+= WEXITSTATUS(status);
+		}
 	}
 	return;
 }
@@ -481,6 +552,27 @@ bool is_intersection(const file_list_node_t a, const file_list_node_t b) {
 	return false;
 }
 
+// recursively counts the number of processes needed by a command tree
+int count_num_pipes(command_t cmd) {
+
+	if(cmd == NULL)
+		return 0;
+	switch(cmd->type) {
+		case PIPE_COMMAND:
+			return 1 + count_num_pipes(cmd->u.command[0]) + count_num_pipes(cmd->u.command[1]);
+		case SEQUENCE_COMMAND:
+		case AND_COMMAND:
+		case OR_COMMAND:
+			return count_num_pipes(cmd->u.command[0]) + count_num_pipes(cmd->u.command[1]);
+		case SUBSHELL_COMMAND:
+			return count_num_pipes(cmd->u.subshell_command);
+		case SIMPLE_COMMAND:
+			return 0;
+		default:
+			return 0;
+	}
+}
+
 // builds dependency graph
 dependency_graph_t build_dependency_graph(command_stream_t command_stream){
 	
@@ -502,6 +594,7 @@ dependency_graph_t build_dependency_graph(command_stream_t command_stream){
 		new_graph_node->dependencies = NULL;
 		new_graph_node->num_dependencies = 0;
 		new_graph_node->pid = -1;
+		new_graph_node->num_procs_needed = count_num_pipes(cmd) + 1; // plus 1 for parent
 
 		// default construct a new execution_list_node
 		execution_list_node_t new_exec_node = checked_malloc(sizeof(execution_list_node));

@@ -125,6 +125,7 @@ typedef struct graph_node {
   command_t cmd; // pointer to the command
   graph_node_t* dependencies; // array of pointers
   int num_dependencies;
+  int num_procs_needed; // contains the number of procs needed to run this command tree
   pid_t pid; // if -1 then has not run yet else parent will initialize this
 } graph_node;
 
@@ -153,16 +154,16 @@ bool is_dependent(const execution_list_node_t a, const execution_list_node_t b);
 bool is_intersection(const file_list_node_t a, const file_list_node_t b);
 
 // executes graph
-int execute_graph(dependency_graph_t graph);
+int execute_graph(dependency_graph_t graph, int max_sub_proc);
 
 // builds dependency graph
 dependency_graph_t build_dependency_graph(command_stream_t command_stream);
 
 // execute all commands that have no dependencies
-void execute_no_dependencies(execution_list_node_t execution_list);
+void execute_no_dependencies(execution_list_node_t execution_list, int max_sub_proc);
 
 // execute all commands that have dependencies
-void execute_dependencies(execution_list_node_t execution_list);
+void execute_dependencies(execution_list_node_t execution_list, int max_sub_proc);
 
 // given a command and its execution list_node fills out its read/write list
 void fill_read_write_list(command_t cmd, execution_list_node_t node);
@@ -172,6 +173,9 @@ void add_file_node(char* to_add, file_list_node_t* list);
 
 // adds execution node to execution_list
 void add_execution_node(execution_list_node_t to_add, execution_list_node_t* list);
+
+// counts the number of procs needed by a command tree
+int count_num_pipes(command_t cmd);
 
 // adds a graph node to an execution list
 void add_graph_node(graph_node_t to_add, execution_list_node_t* list);
