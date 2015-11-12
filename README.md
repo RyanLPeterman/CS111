@@ -9,8 +9,8 @@
 |:---------:	|:----------------:	|
 |   Lab 1A  	|    Finished   	|             	
 | Minilab 1 	|    Finished   	|             	
-|   Lab 1B  	| 	In Progress 	|             	
-| Minilab 2 	| Not Assigned Yet 	|             	
-|   Lab 1C  	| Not Assigned Yet 	|             	
-|   Lab 2   	| Not Assigned Yet 	|             	
+|   Lab 1B  	| 	Finished 	|             	
+| Minilab 2 	| In Progress	 	|             	
+|Lab 1C (+ Design) | 	Finished 	|             	
+|   Lab 2   	| 	Finished 	|             	
 |   Lab 3   	| Not Assigned Yet 	|             	
