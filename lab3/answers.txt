@@ -1,0 +1,20 @@
+# Fill in your name, student ID, and email address in this file.
+# If you are working in a team, fill out the information for both team 
+# members.
+
+# SUBMIT THE LAB ONLY ONCE (from only one partner). This file will be
+# automatically parsed in order to give both team members credit for the
+# lab.
+
+# If you did one or more extra credit problems, indicate which one in the
+# appropriate section below (remove the # sign first). If you have any other
+# information you'd like us to know, please add it at the end of the file.
+
+# Partner 1
+Name: Ryan Peterman
+Student ID: 704269982
+Email: RyanLPeterman@gmail.com
+
+# Add any other information you'd like us to know below this line.
+Passed all 17 test cases on my environment.
+For implementation specifics, the code is commented on almost every line.

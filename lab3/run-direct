@@ -1,0 +1,30 @@
+#! /bin/bash
+
+if [ $UID -ne 0 ]
+then
+	echo ==============================================================
+	echo WARNING: You are not root
+	echo ==============================================================
+fi
+
+while grep ' ospfs ' /proc/mounts >/dev/null; do
+	mtpt=`awk '/ ospfs / { print $2; exit 0 }' /proc/mounts`
+	echo "  **" unmounting ospfs from $mtpt
+	/bin/umount $mtpt || exit 1
+done
+
+if grep '^ospfs ' /proc/modules >/dev/null 2>&1; then
+	echo "  **" removing ospfs module
+	/sbin/rmmod ospfs || exit 1
+fi
+
+if [ -e test ]; then :; else
+	echo "  **" test directory does not exist, creating directory
+	mkdir test
+fi
+
+echo "  **" running make
+make || exit 1
+
+echo "  **" attempting to insert ospfs module and mount the test directory
+/sbin/insmod ospfs.ko && /bin/mount -t ospfs none test

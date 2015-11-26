@@ -1,0 +1,74 @@
+#! /bin/sh
+
+# These commands are run inside Qemu after Qemu loads a version of the current
+# directory into memory.
+
+build () {
+    make || return 1
+
+    if lsmod | grep ospfs >/dev/null 2>&1; then
+	if /bin/mount | grep "`pwd`" >/dev/null 2>&1; then
+	    echo "*** Unmounting ospfs in the test directory."
+	    /bin/umount test || return 1
+	fi
+	echo "*** Unloading old module."
+	rmmod ospfs || return 1
+    fi
+
+    echo
+    echo "*** ospfs.ko built successfully.  Now loading module."
+    insmod ospfs.ko
+    if [ ! -e test ]; then
+	echo "*** Creating test directory."
+	mkdir test
+    fi
+    echo "*** Mounting ospfs in the test directory."
+    /bin/mount -t ospfs none test || return 1
+    echo "*** You may now test your filesystem by making changes to the test directory."
+    echo
+}
+
+reload () {
+    mydir="`pwd`"
+    mkdir -p /tmp/cs111/reload
+    cd /tmp/cs111/reload || return 1
+    rm -rf *
+    echo "Trying TFTP..."
+    (echo "binary"; echo "get /lab.tar.gz") | tftp 10.0.2.2 >/dev/null
+    if [ ! -f lab.tar.gz ]; then
+	echo "Could not reload source!" 1>&2; return 1
+    fi
+    tar -mxzf lab.tar.gz
+    labname="`tar -mtzf lab.tar.gz | head -n 1`"
+    cd "$labname"
+    anychanges=n
+    for i in `find . -type f`; do
+	if ! cmp "$i" /tmp/cs111/"$labname"/"$i" >/dev/null 2>&1; then
+	    cp "$i" /tmp/cs111/"$labname"/"$i"; anychanges=y
+	fi
+    done
+    cd /tmp/cs111/"$labname"
+    if [ $anychanges = n ]; then
+	echo "*** No changes in source." 1>&2
+	echo "&&& Did you remember to type 'r' in the run-qemu terminal?" 1>&2
+	echo 1>&2
+    else
+	echo "*** Source updated." 1>&2
+	build
+	echo 1>&2
+    fi
+}
+
+if [ -f labstuff.tgz ]; then
+    tar -mxzf labstuff.tgz
+    cd `tar -tzf labstuff.tgz | head -n 1`
+    for i in `tar -tzf ../labstuff.tgz | sed 's/^[^\/]*\///;s/\/$//' | grep . | grep -v /`; do mv $i ..; done
+    cd ..
+fi
+
+if [ -f setup-in-qemu2 ]; then
+    ./setup-in-qemu2
+fi
+
+make clean
+build
