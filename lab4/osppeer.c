@@ -534,8 +534,9 @@ static void task_download(task_t *t, task_t *tracker_task)
 			strcpy(t->disk_filename, t->filename);
 		else
 			sprintf(t->disk_filename, "%s~%d~", t->filename, i);
-		t->disk_fd = open(t->disk_filename,
-				  O_WRONLY | O_CREAT | O_EXCL, 0666);
+
+		t->disk_fd = open(t->disk_filename, O_WRONLY | O_CREAT | O_EXCL, 0666);
+
 		if (t->disk_fd == -1 && errno != EEXIST) {
 			error("* Cannot open local file");
 			goto try_again;
@@ -743,14 +744,86 @@ int main(int argc, char *argv[])
 	listen_task = start_listen();
 	register_files(tracker_task, myalias);
 
+	// General Method for Parallel Requests:
+	// 1. Fork all the downloads allowed
+	// 2. Wait for all downloads to finish so we can then upload
+	// 		-This protect against an upload requesting a file that
+	//		is not finished downloading yet
+
+	// TODO For Robustness: Impose a limit on the number of the processes
+	// we can fork so that the system does not crash
+
+	int status = 0;
+	int proc_count = 0;
+
 	// First, download files named on command line.
-	for (; argc > 1; argc--, argv++)
-		if ((t = start_download(tracker_task, argv[1])))
-			task_download(t, tracker_task);
+	for (; argc > 1; argc--, argv++) {
+		if ((t = start_download(tracker_task, argv[1]))) {
+			// todo: check process limit here
+			// if we have an available process
+
+			pid_t pid = fork();
+
+			// parent case
+			if(pid > 0) {
+				proc_count++;
+			} 
+			// child case
+			else if (pid == 0) {
+				task_download(t, tracker_task);
+				_exit(0);
+			}
+			// error when forking
+			else
+				error("Download Forking Error");
+		}
+	}
+
+	pid_t exited_pid;
+
+	// while there are downloads in progress
+	while(proc_count > 0) {
+		exited_pid = waitpid(-1, &status, WNOHANG);
+
+		// if a child process exited
+		if(exited_pid > 0)
+			proc_count--;
+		// waitpid returned error
+		else if(exited_pid < 0) {
+			error("Waitpid Error");
+		}
+	}
 
 	// Then accept connections from other peers and upload files to them!
-	while ((t = task_listen(listen_task)))
-		task_upload(t);
+	while ((t = task_listen(listen_task))) {
+		pid_t pid = fork();
+
+		// parent case
+		if(pid > 0) {
+			proc_count++;
+		}
+		// child case
+		else if(pid == 0) {
+			task_upload(t);
+			_exit(0);
+		}
+		// error when forking
+		else  
+			error("Upload Forking Error");
+	}
+
+	// wait for all processes to finish before parent process exits
+	while(proc_count > 0) {
+		exited_pid = waitpid(-1, &status, WNOHANG);
+
+		// if a child process exited
+		if(exited_pid > 0)
+			proc_count--;
+		// waitpid returned error
+		else if(exited_pid < 0) {
+			error("Waitpid Error");
+		}
+	}
 
 	return 0;
 }
