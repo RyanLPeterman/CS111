@@ -27,6 +27,18 @@ Email: RyanLPeterman@gmail.com
 
 TODO
 
+# NOTES FROM DISCUSSION
+- errors in code:
+    - start_download() has buffer overflow
+    - task_upload() has buffer overflow (does it?)
+    - task_upload() should only upload files in current directory
+- other problems:
+    - limit max download size
+    - limit max peers
+    - fix "tracker closed prematurely"
+- own finds:
+    - task_download() has buffer overflow
+
 # EXERCISE 2A: What conditions did you find and fix that would have
 #    triggered a buffer overrun bug?  (~1-3 sentences each)
 
