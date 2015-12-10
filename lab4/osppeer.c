@@ -6,6 +6,7 @@
 #include <signal.h>
 #include <sys/types.h>
 #include <sys/stat.h>
+#include <sys/wait.h>
 #include <unistd.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
@@ -474,7 +475,10 @@ task_t *start_download(task_t *tracker_task, const char *filename)
 		error("* Error while allocating task");
 		goto exit;
 	}
-	strcpy(t->filename, filename);
+
+	// FIX: buffer overflow due to strcpy()
+	strncpy(t->filename, filename, FILENAMESIZ - 1);
+	t->filename[FILENAMESIZ - 1] = '\0';
 
 	// add peers
 	s1 = tracker_task->buf;
@@ -530,10 +534,14 @@ static void task_download(task_t *t, task_t *tracker_task)
 	// "foo.txt~1~".  However, if there are 50 local files, don't download
 	// at all.
 	for (i = 0; i < 50; i++) {
-		if (i == 0)
-			strcpy(t->disk_filename, t->filename);
+		if (i == 0) {
+			// FIX: possible buffer overflow due to strcpy()
+			strncpy(t->disk_filename, t->filename, FILENAMESIZ - 1);
+			t->disk_filename[FILENAMESIZ - 1] = '\0';
+		}
 		else
-			sprintf(t->disk_filename, "%s~%d~", t->filename, i);
+			// FIX: buffer overflow due to sprintf()
+			snprintf(t->disk_filename, FILENAMESIZ, "%s~%d~", t->filename, i);
 
 		t->disk_fd = open(t->disk_filename, O_WRONLY | O_CREAT | O_EXCL, 0666);
 
@@ -642,6 +650,10 @@ static void task_upload(task_t *t)
 	}
 
 	assert(t->head == 0);
+
+	// FIX: buffer overflow due to osp2p_snscanf() with len = t->tail
+	// Set t->tail (len) to min(t->tail, FILENAMESIZ - 1)
+	t->tail = t->tail > FILENAMESIZ ? FILENAMESIZ - 1 : t->tail;
 	if (osp2p_snscanf(t->buf, t->tail, "GET %s OSP2P\n", t->filename) < 0) {
 		error("* Odd request %.*s\n", t->tail, t->buf);
 		goto exit;

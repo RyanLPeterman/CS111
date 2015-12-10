@@ -30,7 +30,7 @@ TODO
 # NOTES FROM DISCUSSION
 - errors in code:
     - start_download() has buffer overflow
-    - task_upload() has buffer overflow (does it?)
+    - task_upload() has buffer overflow
     - task_upload() should only upload files in current directory
 - other problems:
     - limit max download size
@@ -42,7 +42,23 @@ TODO
 # EXERCISE 2A: What conditions did you find and fix that would have
 #    triggered a buffer overrun bug?  (~1-3 sentences each)
 
-TODO
+In start_download() and task_download(), a filename with a length greater than
+FILENAMESIZ-1 would have caused a buffer overflow. This was fixed by using
+strncpy() in place of strcpy(), to ensure that the filename had only
+FILENAMESIZ-1 characters (with a '\0' appended to the end).
+
+There was another buffer overflow bug in task_download() due to the use of
+sprintf(). This bug occurs when there is a duplicate filename and the filename
+must be extended to "[filename]~[number]~", which can exceed FILENAMESIZ
+characters. We replaced sprintf() with snprintf() and specified a buffer size
+of FILENAMESIZ to fix the issue.
+
+In task_upload(), osp2p_snscanf() is used to parse for a filename with t->tail
+as the length. This can lead to a buffer overflow because t->tail is normally
+used with t->buf, which has a size (TASKBUFSIZ=4096) much greater than
+t->filename's size (FILENAMESIZ=256). We set t->tail to the minimum of t->tail
+and FILENAMESIZ-1, so that a maximum of FILENAMESIZ-1 characters will be read
+into t->filename.
 
 # EXERCISE 2B: What other robustness problems did you fix?  (~1-3 sentences
 #    each)
