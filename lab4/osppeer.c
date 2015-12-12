@@ -34,8 +34,11 @@ static int listen_port;
  * a bounded buffer that simplifies reading from and writing to peers.
  */
 
-#define TASKBUFSIZ	4096	// Size of task_t::buf
-#define FILENAMESIZ	256	// Size of task_t::filename
+// Fix: Incease TASKBUFSIZ to fix popular tracker error
+#define TASKBUFSIZ	32768	// Size of task_t::buf
+#define FILENAMESIZ	256		// Size of task_t::filename
+
+#define MAXFILESIZE	1000000 // FIX: File Download Limit - 1 MB
 
 typedef enum tasktype {		// Which type of connection is this?
 	TASK_TRACKER,		// => Tracker connection
@@ -576,6 +579,14 @@ static void task_download(task_t *t, task_t *tracker_task)
 			error("* Disk write error");
 			goto try_again;
 		}
+
+		// FIX: Check the number of bytes written to disk with the max file size
+		if(t->total_written >= MAXFILESIZE) {
+			// clean partially written file before exiting
+			remove(t->filename);
+			error("* File (%s) was too large to download.\n", t->filename);
+			return;
+		}
 	}
 
 	// Empty files are usually a symptom of some error.
@@ -637,6 +648,10 @@ static task_t *task_listen(task_t *listen_task)
 //	the requested file.
 static void task_upload(task_t *t)
 {
+	// FIX: added strings to hold cwd and real path
+	char real_path[PATH_MAX];
+	char cwd[PATH_MAX];
+
 	assert(t->type == TASK_UPLOAD);
 	// First, read the request from the peer.
 	while (1) {
@@ -659,6 +674,21 @@ static void task_upload(task_t *t)
 		goto exit;
 	}
 	t->head = t->tail = 0;
+
+	// FIX: get real path and curr working dir and compare
+	// to make sure we only fulfill requests in cwd
+	if(!getcwd(cwd, PATH_MAX)) {
+		error("* Error requesting current working directory\n");
+		goto exit;
+	}
+	if(!realpath(t->filename, real_path)) {
+		error("* Error requesting absolute path to file\n");
+		goto exit;
+	}
+	if(strncmp(cwd, real_path, strlen(real_path))) {
+		error("Requested file (%s) is not in current directory\n", t->filename);
+		goto exit;
+	}
 
 	t->disk_fd = open(t->filename, O_RDONLY);
 	if (t->disk_fd == -1) {
@@ -756,11 +786,12 @@ int main(int argc, char *argv[])
 	listen_task = start_listen();
 	register_files(tracker_task, myalias);
 
-	// General Method for Parallel Requests:
+	// FIX: General Method for Parallel Requests:
 	// 1. Fork all the downloads allowed
 	// 2. Wait for all downloads to finish so we can then upload
 	// 		-This protect against an upload requesting a file that
 	//		is not finished downloading yet
+	// 3. Fork all uploads 
 
 	// TODO For Robustness: Impose a limit on the number of the processes
 	// we can fork so that the system does not crash
