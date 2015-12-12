@@ -92,4 +92,10 @@ causes "tracker closed prematurely error".
 
 	// TODO Think about a better solution to this problem
 
+4. Limit the number of uploads the client can handle at a time.
+
+	fix (in main): set a maximum number of uploads, and if there are more
+	than MAX_UPLOADS uploads running, use waitpid() to wait for running
+	processes (uploads) to terminate before starting another one
+
 # Add any other information you'd like us to know below this line.

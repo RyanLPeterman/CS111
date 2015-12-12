@@ -837,34 +837,33 @@ int main(int argc, char *argv[])
 		}
 	}
 
+#define MAX_UPLOADS 20
 	// Then accept connections from other peers and upload files to them!
-	while ((t = task_listen(listen_task))) {
-		pid_t pid = fork();
-
-		// parent case
-		if(pid > 0) {
-			proc_count++;
-		}
-		// child case
-		else if(pid == 0) {
-			task_upload(t);
-			_exit(0);
-		}
-		// error when forking
-		else  
-			error("Upload Forking Error");
-	}
-
-	// wait for all processes to finish before parent process exits
-	while(proc_count > 0) {
-		exited_pid = waitpid(-1, &status, WNOHANG);
-
-		// if a child process exited
-		if(exited_pid > 0)
+	while (1) {
+		// FIX: only maintain MAX_UPLOADS connections so the network is not overloaded
+		while (waitpid(-1, &status, WNOHANG) > 0) {
 			proc_count--;
-		// waitpid returned error
-		else if(exited_pid < 0) {
-			error("Waitpid Error");
+		}
+		if (proc_count > MAX_UPLOADS) {
+			sleep(10);
+			continue;
+		}
+
+		while ((t = task_listen(listen_task))) {
+			pid_t pid = fork();
+
+			// parent case
+			if(pid > 0) {
+				proc_count++;
+			}
+			// child case
+			else if(pid == 0) {
+				task_upload(t);
+				_exit(0);
+			}
+			// error when forking
+			else  
+				error("Upload Forking Error");
 		}
 	}
 
