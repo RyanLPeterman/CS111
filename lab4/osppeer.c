@@ -793,17 +793,12 @@ int main(int argc, char *argv[])
 	//		is not finished downloading yet
 	// 3. Fork all uploads 
 
-	// TODO For Robustness: Impose a limit on the number of the processes
-	// we can fork so that the system does not crash
-
 	int status = 0;
 	int proc_count = 0;
 
 	// First, download files named on command line.
 	for (; argc > 1; argc--, argv++) {
 		if ((t = start_download(tracker_task, argv[1]))) {
-			// todo: check process limit here
-			// if we have an available process
 
 			pid_t pid = fork();
 

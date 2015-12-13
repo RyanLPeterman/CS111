@@ -22,80 +22,83 @@ Name: Ryan Peterman
 Student ID: 704269982
 Email: RyanLPeterman@gmail.com
 
-# NOTES FROM DISCUSSION
-- errors in code:
-    - start_download() has buffer overflow
-    - task_upload() has buffer overflow
-    - task_upload() should only upload files in current directory
-- other problems:
-    - limit max download size
-    - limit max peers
-    - fix "tracker closed prematurely"
-- own finds:
-    - task_download() has buffer overflow
-
 # EXERCISE 1: What method you used to make your peer download and upload
 #    files in parallel?  (~1-3 sentences)
 
 	General Method for Parallel Requests:
 		1. Fork all the downloads
 		2. Wait for all downloads to finish
-			- This protects agains an upload requesting a file that is not 
+			- This protects against an upload requesting a file that is not 
 			finished downloading yet
-		3. Fork all uploads
+		3. Fork uploads
+			- We only fork up to as many as MAXUPLOADS at the same time here as 
+			a safety measure
 		4. Wait for all uploads to finish so we can terminate parent process
 
 # EXERCISE 2A: What conditions did you find and fix that would have
 #    triggered a buffer overrun bug?  (~1-3 sentences each)
 
-1. In start_download() and task_download(), a filename with a length greater 
-than FILENAMESIZ-1 would have caused a buffer overflow. This was fixed by 
-using strncpy() in place of strcpy(), to ensure that the filename had only
-FILENAMESIZ-1 characters (with a '\0' appended to the end).
+1. Problem: In start_download() and task_download(), a filename with a length 
+greater than FILENAMESIZ-1 would have caused a buffer overflow. 
 
-2. There was another buffer overflow bug in task_download() due to the use 
-of sprintf(). This bug occurs when there is a duplicate filename and the 
-filename must be extended to "[filename]~[number]~", which can exceed 
-FILENAMESIZ characters. We replaced sprintf() with snprintf() and specified 
-a buffer size of FILENAMESIZ to fix the issue.
+	Fix (in start_download, task_download): This was fixed by using strncpy() 
+	in place of strcpy(), to ensure that the filename had only FILENAMESIZ-1 
+	characters (with a '\0' appended to the end).
 
-3. In task_upload(), osp2p_snscanf() is used to parse for a filename with 
-t->tail as the length. This can lead to a buffer overflow because t->tail 
+2. Problem: There was another buffer overflow bug in task_download() due 
+to the use of sprintf(). This bug occurs when there is a duplicate filename 
+and the filename must be extended to "[filename]~[number]~", which can exceed 
+FILENAMESIZ characters. 
+
+	Fix (in task_download): We replaced sprintf() with snprintf() and specified 
+	a buffer size of FILENAMESIZ to fix the issue.
+
+3. Problem: In task_upload(), osp2p_snscanf() is used to parse for a filename
+ with t->tail as the length. This can lead to a buffer overflow because t->tail 
 is normally used with t->buf, which has a size (TASKBUFSIZ=4096) much 
-greater than t->filename's size (FILENAMESIZ=256). We set t->tail to the 
-minimum of t->tail and FILENAMESIZ-1, so that a maximum of FILENAMESIZ-1 
-characters will be read into t->filename.
+greater than t->filename's size (FILENAMESIZ=256). 
+
+	Fix (in task_upload): We set t->tail to the minimum of t->tail and 
+	FILENAMESIZ-1, so that a maximum of FILENAMESIZ-1 characters will be read 
+	into t->filename.
 
 # EXERCISE 2B: What other robustness problems did you fix?  (~1-3 sentences
 #    each)
 
-1. Upload request might ask for a file outside the current working directory
+1. Problem: Upload request might ask for a file outside the current working 
+directory
 	
-	fix (task_upload): compare current working directory with the real path in
-	task_upload and if they're not the same, exit
+	Fix (in task_upload): compare current working directory with the real path
+	of file in task_upload and if they're not the same, exit
 
-2. Downloading file could potentially be an exceedingly large file that would 
-consume all disk space.
+2. Problem: Downloading file could potentially be an exceedingly large file 
+that would consume all disk space.
 
-	fix (task_download): define a max file size macro such that we check it 
-	the number of downloaded bytes with that max file size. If the number of 
-	bytes written is larger than the max file size we specified, then we 
-	clean up the partially written files and return such that we do not complete 
-	the request.
+	Fix (in task_download): define a max file size macro such that we check 
+	the number of downloaded bytes with that max file size limit. If the number 
+	of bytes written is larger than the max file size we specified, then we 
+	clean up the partially written files and return such that we do not 
+	complete the request.
 
-3. Problem when there are too many trackers for the peer to handle which 
+3. Problem: when there are too many trackers for the peer to handle which 
 causes "tracker closed prematurely error".
 
-	fix (at top of osppeer.c): increase the size of TASKBUFSIZ fixes the 
-	problem since now we can handle more peers, but there may be a better 
-	solution
+	Fix (at top of osppeer.c): increase the size of TASKBUFSIZ fixes the 
+	problem since now we can handle more peers.
 
-	// TODO Think about a better solution to this problem
+4. Problem: If too many upload requests, system may fork too many processes
+and crash
 
-4. Limit the number of uploads the client can handle at a time.
-
-	fix (in main): set a maximum number of uploads, and if there are more
+	Fix (in main): set a maximum number of uploads, and if there are more
 	than MAX_UPLOADS uploads running, use waitpid() to wait for running
 	processes (uploads) to terminate before starting another one
 
 # Add any other information you'd like us to know below this line.
+
+To help with grading, we prefaced all changes/fixes with a comment of the 
+following format:
+	
+	// FIX: notes/reasoning about the change
+
+If you ctrl+f FIX you will find all of our changes with their accompanying 
+comments.
